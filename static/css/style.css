@@ -1,0 +1,217 @@
+/* Custom styles for Japanese business application */
+
+.required::after {
+    content: " *";
+    color: #dc3545;
+}
+
+/* Table styling improvements */
+.table th {
+    border-top: none;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Status badges */
+.status-badge {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+}
+
+.status-受注 {
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+.status-進行中 {
+    background-color: var(--bs-warning);
+    color: var(--bs-dark);
+}
+
+.status-完了 {
+    background-color: var(--bs-success);
+    color: white;
+}
+
+.status-キャンセル {
+    background-color: var(--bs-danger);
+    color: white;
+}
+
+/* Currency formatting */
+.currency {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+}
+
+/* Action buttons */
+.btn-action {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    margin: 0 0.125rem;
+}
+
+/* Modal improvements */
+.modal-lg {
+    max-width: 800px;
+}
+
+/* Form spacing */
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+/* Loading states */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Progress bar customization */
+.progress {
+    background-color: var(--bs-gray-600);
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+}
+
+/* Pagination improvements */
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-link {
+    color: var(--bs-primary);
+    border-color: var(--bs-border-color);
+}
+
+.page-link:hover {
+    color: var(--bs-primary);
+    background-color: var(--bs-gray-700);
+    border-color: var(--bs-border-color);
+}
+
+.page-item.active .page-link {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+/* Empty state styling */
+.text-muted {
+    opacity: 0.7;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+    .table-responsive {
+        border: none;
+    }
+    
+    .btn-action {
+        padding: 0.125rem 0.25rem;
+        font-size: 0.75rem;
+    }
+    
+    .table td,
+    .table th {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Form validation styling */
+.is-invalid {
+    border-color: var(--bs-danger);
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--bs-danger);
+}
+
+/* Alert improvements */
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+/* Card header improvements */
+.card-header {
+    border-bottom: 1px solid var(--bs-border-color);
+    background-color: transparent;
+}
+
+/* Input group improvements */
+.input-group-text {
+    background-color: var(--bs-gray-700);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+/* Navbar improvements */
+.navbar-brand {
+    font-weight: 600;
+}
+
+.nav-link.active {
+    font-weight: 600;
+}
+
+/* Button spacing */
+.btn + .btn {
+    margin-left: 0.5rem;
+}
+
+/* Search input styling */
+#searchInput {
+    border-radius: 0.375rem 0 0 0.375rem;
+}
+
+/* Profit analysis specific styles */
+.profit-positive {
+    color: var(--bs-success);
+}
+
+.profit-negative {
+    color: var(--bs-danger);
+}
+
+.profit-neutral {
+    color: var(--bs-warning);
+}
+
+/* Chart legends */
+.chart-legend {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+}
+
+.chart-legend li {
+    display: inline-block;
+    margin-right: 1rem;
+    font-size: 0.875rem;
+}
+
+.chart-legend li::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 0.5rem;
+    border-radius: 2px;
+    vertical-align: middle;
+}
