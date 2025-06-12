@@ -77,24 +77,3 @@ class OrderForm(FlaskForm):
         Optional(),
         Length(max=1000, message='備考は1000文字以下で入力してください')
     ])
-
-class CostForm(FlaskForm):
-    employee_cost = DecimalField('社員原価', validators=[
-        DataRequired(message='社員原価は必須です'),
-        NumberRange(min=0, message='社員原価は0以上で入力してください')
-    ], widget=NumberInput(step='0.01'))
-    bp_cost = DecimalField('BP原価', validators=[
-        DataRequired(message='BP原価は必須です'),
-        NumberRange(min=0, message='BP原価は0以上で入力してください')
-    ], widget=NumberInput(step='0.01'))
-    period_start = DateField('期間開始日', validators=[
-        DataRequired(message='期間開始日は必須です')
-    ])
-    period_end = DateField('期間終了日', validators=[
-        DataRequired(message='期間終了日は必須です')
-    ])
-    
-    def validate_period_end(self, period_end):
-        if self.period_start.data and period_end.data:
-            if period_end.data <= self.period_start.data:
-                raise ValidationError('期間終了日は期間開始日より後の日付を入力してください')

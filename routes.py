@@ -6,8 +6,8 @@ from decimal import Decimal
 import logging
 
 from app import app, db, limiter
-from models import User, Order, CostData
-from forms import LoginForm, RegisterForm, OrderForm, CostForm
+from models import User, Order
+from forms import LoginForm, RegisterForm, OrderForm
 
 @app.route('/')
 def index():
@@ -227,88 +227,32 @@ def api_delete_order(order_id):
 @app.route('/profit-analysis')
 @login_required
 def profit_analysis():
-    form = CostForm()
-    return render_template('profit_analysis.html', form=form)
+    return render_template('profit_analysis.html')
 
 @app.route('/api/profit-data', methods=['GET'])
 @login_required
 @limiter.limit("60 per minute")
 def api_get_profit_data():
     try:
-        # Get latest cost data for user
-        cost_data = CostData.query.filter_by(user_id=current_user.id)\
-                                 .order_by(CostData.created_at.desc()).first()
-        
         # Calculate total revenue from orders
         total_revenue = db.session.query(db.func.sum(Order.order_amount))\
                                  .filter_by(user_id=current_user.id)\
                                  .scalar() or Decimal('0')
         
-        # Get cost data or use defaults
-        employee_cost = cost_data.employee_cost if cost_data else Decimal('0')
-        bp_cost = cost_data.bp_cost if cost_data else Decimal('0')
-        total_cost = employee_cost + bp_cost
-        
-        # Calculate profit
-        profit = total_revenue - total_cost
-        profit_rate = (profit / total_revenue * 100) if total_revenue > 0 else Decimal('0')
-        
         return jsonify({
             'total_revenue': float(total_revenue),
-            'employee_cost': float(employee_cost),
-            'bp_cost': float(bp_cost),
-            'total_cost': float(total_cost),
-            'profit': float(profit),
-            'profit_rate': float(profit_rate),
-            'period_start': cost_data.period_start.strftime('%Y-%m-%d') if cost_data else None,
-            'period_end': cost_data.period_end.strftime('%Y-%m-%d') if cost_data else None
+            'employee_cost': 0,  # 手動入力用
+            'bp_cost': 0,  # 手動入力用
+            'total_cost': 0,  # 手動入力用
+            'profit': float(total_revenue),  # 手動入力用の原価が0なので、売上と同じ
+            'profit_rate': 100,  # 手動入力用の原価が0なので、100%
+            'period_start': None,  # 手動入力用
+            'period_end': None  # 手動入力用
         })
     
     except Exception as e:
         logging.error(f"Error fetching profit data: {e}")
         return jsonify({'error': 'データの取得中にエラーが発生しました'}), 500
-
-@app.route('/api/cost-data', methods=['POST'])
-@login_required
-@limiter.limit("20 per minute")
-def api_save_cost_data():
-    form = CostForm()
-    if form.validate_on_submit():
-        try:
-            # Delete existing cost data for overlapping periods
-            CostData.query.filter(
-                and_(
-                    CostData.user_id == current_user.id,
-                    or_(
-                        and_(
-                            CostData.period_start <= form.period_end.data,
-                            CostData.period_end >= form.period_start.data
-                        )
-                    )
-                )
-            ).delete()
-            
-            # Create new cost data
-            cost_data = CostData(
-                user_id=current_user.id,
-                employee_cost=form.employee_cost.data,
-                bp_cost=form.bp_cost.data,
-                period_start=form.period_start.data,
-                period_end=form.period_end.data
-            )
-            
-            db.session.add(cost_data)
-            db.session.commit()
-            
-            logging.info(f"Cost data saved by user {current_user.username}")
-            return jsonify({'message': '原価データが保存されました'})
-        
-        except Exception as e:
-            db.session.rollback()
-            logging.error(f"Error saving cost data: {e}")
-            return jsonify({'error': '原価データ保存中にエラーが発生しました'}), 500
-    
-    return jsonify({'error': 'バリデーションエラー', 'errors': form.errors}), 400
 
 @app.errorhandler(404)
 def not_found_error(error):

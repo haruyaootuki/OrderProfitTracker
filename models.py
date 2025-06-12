@@ -64,21 +64,3 @@ class Order(db.Model):
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S')
         }
-
-class CostData(db.Model):
-    __tablename__ = 'cost_data'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    employee_cost = db.Column(db.Numeric(15, 2), nullable=False, default=0)
-    bp_cost = db.Column(db.Numeric(15, 2), nullable=False, default=0)
-    period_start = db.Column(db.Date, nullable=False)
-    period_end = db.Column(db.Date, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationship
-    user = db.relationship('User', backref='cost_data')
-    
-    def __repr__(self):
-        return f'<CostData {self.user_id} {self.period_start}-{self.period_end}>'
