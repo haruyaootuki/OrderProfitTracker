@@ -8,9 +8,12 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
+from dotenv import load_dotenv
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
+
+load_dotenv()
 
 class Base(DeclarativeBase):
     pass
@@ -21,7 +24,7 @@ login_manager = LoginManager()
 csrf = CSRFProtect()
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    # default_limits=["200 per day", "50 per hour"]
 )
 
 def create_app():
@@ -61,12 +64,6 @@ def create_app():
     def load_user(user_id):
         from models import User
         return User.query.get(int(user_id))
-    
-    # Create tables
-    with app.app_context():
-        import models  # noqa: F401
-        db.create_all()
-        logging.info("Database tables created")
     
     return app
 

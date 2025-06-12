@@ -1,0 +1,188 @@
+openapi: 3.0.3
+info:
+  title: Business System API
+  version: 1.0.0
+  description: API documentation generated from specification Excel.
+paths:
+  /login:
+    post:
+      summary: ユーザーIDとパスワードを検証し、認証成功時にセッションクッキーを発行します。
+      tags:
+      - ユーザー/認証管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exampleField:
+                  type: string
+                  description: 例としてのフィールド
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid request
+  /logout:
+    post:
+      summary: 現在のセッションを終了し、クッキーを無効化（またはクライアント側トークンクリアを指示）します。
+      tags:
+      - ユーザー/認証管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exampleField:
+                  type: string
+                  description: 例としてのフィールド
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid request
+  /register:
+    post:
+      summary: 新しいユーザーアカウントを作成します。パスワードはハッシュ化されて保存されます。
+      tags:
+      - ユーザー/認証管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exampleField:
+                  type: string
+                  description: 例としてのフィールド
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid request
+  /delete{userId}:
+    post:
+      summary: 指定されたユーザーIDのアカウントをシステム管理者が削除します。
+      tags:
+      - ユーザー/認証管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exampleField:
+                  type: string
+                  description: 例としてのフィールド
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid request
+  /api/orders:
+    post:
+      summary: 新しい受注情報をデータベースに保存します。
+      tags:
+      - 受注管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exampleField:
+                  type: string
+                  description: 例としてのフィールド
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid request
+    get:
+      summary: 登録された全ての受注情報を検索条件に基づいて返します。
+      tags:
+      - 受注管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exampleField:
+                  type: string
+                  description: 例としてのフィールド
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid request
+  /api/orders/{orderId}:
+    put:
+      summary: 指定されたIDの受注情報を更新します。
+      tags:
+      - 受注管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exampleField:
+                  type: string
+                  description: 例としてのフィールド
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid request
+    delete:
+      summary: 指定されたIDの受注情報を削除します。
+      tags:
+      - 受注管理
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exampleField:
+                  type: string
+                  description: 例としてのフィールド
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid request
+  /api/profit-data:
+    get:
+      summary: 指定された期間（月または案件）の売上合計、原価合計、粗利益、利益率を計算して返します。
+      tags:
+      - 利益分析
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                exampleField:
+                  type: string
+                  description: 例としてのフィールド
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid request
+tags:
+- name: ユーザー/認証管理
+- name: 受注管理
+- name: 利益分析
