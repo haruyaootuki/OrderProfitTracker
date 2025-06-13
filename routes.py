@@ -6,6 +6,7 @@ from decimal import Decimal
 import logging
 from datetime import datetime, timedelta, date
 from calendar import monthrange
+from functools import wraps
 
 from app import app, db, limiter
 from models import User, Order
@@ -41,31 +42,9 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 @limiter.limit("3 per minute")
 def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('orders'))
-    
-    form = RegisterForm()
-    if form.validate_on_submit():
-        try:
-            user = User(
-                username=form.username.data,
-                email=form.email.data
-            )
-            user.set_password(form.password.data)
-            
-            db.session.add(user)
-            db.session.commit()
-            
-            flash('アカウントが作成されました。ログインしてください。', 'success')
-            logging.info(f"New user registered: {user.username}")
-            return redirect(url_for('login'))
-        
-        except Exception as e:
-            db.session.rollback()
-            flash('アカウント作成中にエラーが発生しました', 'error')
-            logging.error(f"Error creating user: {e}")
-    
-    return render_template('register.html', form=form)
+    # 一般ユーザーの登録を無効化
+    flash('現在、新規ユーザー登録は受け付けていません。管理者にお問い合わせください。', 'info')
+    return redirect(url_for('login'))
 
 @app.route('/logout')
 @login_required
@@ -309,3 +288,98 @@ def internal_error(error):
 @app.errorhandler(429)
 def ratelimit_handler(e):
     return jsonify({'error': 'アクセス制限に達しました。しばらく待ってからやり直してください。'}), 429
+
+# 管理者権限チェック用デコレータ
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('管理者権限が必要です', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/admin/users')
+@login_required
+@admin_required
+def admin_users():
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('admin/users.html', users=users)
+
+@app.route('/admin/users/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_create_user():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        email = request.form.get('email')
+        is_admin = request.form.get('is_admin') == 'true'
+        
+        if not all([username, password, email]):
+            flash('ユーザー名、メールアドレス、パスワードは必須です', 'error')
+            return redirect(url_for('admin_create_user'))
+        
+        if User.query.filter_by(username=username).first():
+            flash('このユーザー名は既に使用されています', 'error')
+            return redirect(url_for('admin_create_user'))
+        
+        if User.query.filter_by(email=email).first():
+            flash('このメールアドレスは既に使用されています', 'error')
+            return redirect(url_for('admin_create_user'))
+        
+        try:
+            user = User(username=username, email=email, is_admin=is_admin)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            flash('ユーザーを作成しました', 'success')
+            return redirect(url_for('admin_users'))
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f"Error creating user: {e}")
+            flash('ユーザー作成中にエラーが発生しました', 'error')
+            return redirect(url_for('admin_create_user'))
+    
+    return render_template('admin/create_user.html')
+
+@app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_user(user_id):
+    if user_id == current_user.id:
+        flash('自分自身のアカウントは削除できません', 'error')
+        return redirect(url_for('admin_users'))
+    
+    user = User.query.get_or_404(user_id)
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        flash('ユーザーを削除しました', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error deleting user: {e}")
+        flash('ユーザー削除中にエラーが発生しました', 'error')
+    
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/<int:user_id>/toggle-admin', methods=['POST'])
+@login_required
+@admin_required
+def admin_toggle_admin(user_id):
+    if user_id == current_user.id:
+        flash('自分自身の管理者権限は変更できません', 'error')
+        return redirect(url_for('admin_users'))
+    
+    user = User.query.get_or_404(user_id)
+    try:
+        user.is_admin = not user.is_admin
+        db.session.commit()
+        status = '付与' if user.is_admin else '削除'
+        flash(f'管理者権限を{status}しました', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error toggling admin status: {e}")
+        flash('権限変更中にエラーが発生しました', 'error')
+    
+    return redirect(url_for('admin_users'))
