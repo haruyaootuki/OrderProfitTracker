@@ -49,6 +49,7 @@ class OrderManager {
                     formatter: function (cell, formatterParams, onRendered) {
                         const value = parseInt(cell.getValue()) || 0;
                         return '¥' + value.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+                    }
                 },
                 { title: "顧客名", field: "customer_name", sorter: "string", width: 120 },
                 { title: "案件名", field: "project_name", sorter: "string", width: 200 },
