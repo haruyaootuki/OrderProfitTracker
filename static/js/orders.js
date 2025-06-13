@@ -28,6 +28,7 @@ class OrderManager {
             resizableColumns: true,
             tooltips: true,
             placeholder: "データがありません",
+            footerElement: "<div class='tabulator-footer'></div>",
             columns: [
                 { title: "受注日", field: "order_date", hozAlign: "center", sorter: "date", width: 100, frozen: true },
                 {
@@ -35,6 +36,13 @@ class OrderManager {
                     formatter: function (cell, formatterParams, onRendered) {
                         const value = parseInt(cell.getValue()) || 0;
                         return '¥' + value.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+                    },
+                    bottomCalc: function(values) {
+                        const sum = values.reduce((acc, val) => acc + (parseInt(val) || 0), 0);
+                        return '¥' + sum.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+                    },
+                    bottomCalcFormatter: function(cell) {
+                        return cell.getValue();
                     }
                 },
                 {
@@ -42,6 +50,13 @@ class OrderManager {
                     formatter: function (cell, formatterParams, onRendered) {
                         const value = parseInt(cell.getValue()) || 0;
                         return '¥' + value.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+                    },
+                    bottomCalc: function(values) {
+                        const sum = values.reduce((acc, val) => acc + (parseInt(val) || 0), 0);
+                        return '¥' + sum.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+                    },
+                    bottomCalcFormatter: function(cell) {
+                        return cell.getValue();
                     }
                 },
                 {
@@ -49,6 +64,13 @@ class OrderManager {
                     formatter: function (cell, formatterParams, onRendered) {
                         const value = parseInt(cell.getValue()) || 0;
                         return '¥' + value.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+                    },
+                    bottomCalc: function(values) {
+                        const sum = values.reduce((acc, val) => acc + (parseInt(val) || 0), 0);
+                        return '¥' + sum.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+                    },
+                    bottomCalcFormatter: function(cell) {
+                        return cell.getValue();
                     }
                 },
                 { title: "顧客名", field: "customer_name", sorter: "string", width: 120 },
