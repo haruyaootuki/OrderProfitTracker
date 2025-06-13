@@ -91,7 +91,7 @@ class OrderForm(FlaskForm):
     billing_month = DateField('請求日', validators=[
         Optional()
     ])
-    work_in_progress = BooleanField('進行中', default=False)
+    work_in_progress = BooleanField('仕掛', default=False)
     description = TextAreaField('詳細', validators=[
         Optional(),
         Length(max=2000, message='詳細は2000文字以下で入力してください')
