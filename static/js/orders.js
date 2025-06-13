@@ -1,28 +1,124 @@
 // Orders management JavaScript
 class OrderManager {
     constructor() {
-        this.currentPage = 1;
-        this.perPage = 20;
-        this.searchTerm = '';
         this.editingOrderId = null;
         this.deleteOrderId = null;
         
+        this.initializeTabulator();
         this.initializeEventListeners();
-        this.loadOrders();
+    }
+    
+    initializeTabulator() {
+        // Tabulatorテーブルの初期化
+        this.table = new Tabulator("#orders-table", {
+            ajaxURL: "/api/orders",
+            ajaxConfig: {
+                method: "GET",
+                headers: {
+                    "X-CSRFToken": document.querySelector('meta[name=csrf-token]').getAttribute('content')
+                },
+            },
+            layout: "fitColumns",
+            responsiveLayout: "hide",
+            history: true,
+            pagination: "remote", // サーバーサイドページネーション
+            paginationSize: 20, // 1ページあたりの行数
+            paginationSizeSelector: [10, 20, 50, 100], // ページサイズ選択
+            movableColumns: true, // カラムの並べ替えを許可
+            resizableColumns: true, // カラムのリサイズを許可
+            tooltips: true, // ツールチップ表示
+            placeholder: "データがありません", // データがない場合のメッセージ
+            columns: [
+                { title: "受注番号", field: "order_number", sorter: "string" },
+                { title: "顧客名", field: "customer_name", sorter: "string" },
+                { title: "プロジェクト名", field: "project_name", sorter: "string" },
+                {
+                    title: "受注金額", field: "order_amount", hozAlign: "right", sorter: "number",
+                    formatter: function (cell, formatterParams, onRendered) {
+                        return '¥' + parseFloat(cell.getValue()).toLocaleString();
+                    }
+                },
+                { title: "受注日", field: "order_date", hozAlign: "center", sorter: "date" },
+                { title: "納期", field: "delivery_date", hozAlign: "center", sorter: "date" },
+                {
+                    title: "ステータス", field: "status", hozAlign: "center",
+                    formatter: function (cell, formatterParams, onRendered) {
+                        const status = cell.getValue();
+                        let badgeClass = '';
+                        switch (status) {
+                            case '完了':
+                                badgeClass = 'bg-success';
+                                break;
+                            case '進行中':
+                                badgeClass = 'bg-primary';
+                                break;
+                            case '保留':
+                                badgeClass = 'bg-warning text-dark';
+                                break;
+                            case 'キャンセル':
+                                badgeClass = 'bg-danger';
+                                break;
+                            default:
+                                badgeClass = 'bg-secondary';
+                        }
+                        return `<span class="badge ${badgeClass}">${status}</span>`;
+                    },
+                },
+                {
+                    title: "操作", field: "actions", hozAlign: "center", formatter: "html", width: 120, headerSort: false,
+                    formatter: (cell, formatterParams, onRendered) => {
+                        const orderId = cell.getRow().getData().id;
+                        return `
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-action edit-btn" data-id="${orderId}" title="編集">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-action delete-btn" data-id="${orderId}" title="削除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    },
+                    cellClick: (e, cell) => {
+                        const target = e.target.closest('button');
+                        if (!target) return;
+
+                        const orderId = target.dataset.id;
+                        if (target.classList.contains('edit-btn')) {
+                            this.editOrder(orderId);
+                        } else if (target.classList.contains('delete-btn')) {
+                            this.confirmDelete(orderId);
+                        }
+                    },
+                },
+            ],
+            ajaxResponse: function (url, params, response) {
+                return response.orders; // 受注データの配列を直接返す
+            },
+        });
     }
     
     initializeEventListeners() {
-        // Search functionality
-        const searchInput = document.getElementById('searchInput');
-        let searchTimeout;
-        
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                this.searchTerm = e.target.value.trim();
-                this.currentPage = 1;
-                this.loadOrders();
-            }, 500);
+        // 検索機能 (Tabulatorのフィルターを使用)
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            this.table.setFilter("order_number", "like", e.target.value);
+            // 顧客名とプロジェクト名も検索対象に含める場合（Tabulatorの複合フィルター）
+            // this.table.setFilter([
+            //     { field: "order_number", type: "like", value: e.target.value },
+            //     { field: "customer_name", type: "like", value: e.target.value },
+            //     { field: "project_name", type: "like", value: e.target.value },
+            // ]);
+        });
+
+        // クリアボタン
+        document.getElementById('clearSearchBtn').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            this.table.clearFilter();
+            // HeaderFilterもクリアする場合
+            // this.table.clearHeaderFilter(); // 今回はheaderFilterを削除したので不要
+        });
+
+        // 更新ボタン
+        document.getElementById('refreshOrdersBtn').addEventListener('click', () => {
+            this.table.replaceData(); // 現在のフィルターとソートを維持してデータを再読み込み
         });
         
         // Order form submission
@@ -42,141 +138,14 @@ class OrderManager {
         });
     }
     
-    async loadOrders() {
-        try {
-            this.showLoading();
-            
-            const params = new URLSearchParams({
-                page: this.currentPage,
-                per_page: this.perPage,
-                search: this.searchTerm
-            });
-            
-            const response = await fetch(`/api/orders?${params}`, {
-                headers: {
-                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('データの取得に失敗しました');
-            }
-            
-            const data = await response.json();
-            this.renderOrders(data.orders);
-            this.renderPagination(data);
-            this.hideLoading();
-            
-        } catch (error) {
-            console.error('Error loading orders:', error);
-            this.showError('受注データの読み込み中にエラーが発生しました');
-            this.hideLoading();
-        }
-    }
-    
-    renderOrders(orders) {
-        const tbody = document.getElementById('ordersTableBody');
-        const container = document.getElementById('ordersTableContainer');
-        const emptyState = document.getElementById('emptyState');
-        
-        if (orders.length === 0) {
-            container.style.display = 'none';
-            emptyState.style.display = 'block';
-            return;
-        }
-        
-        container.style.display = 'block';
-        emptyState.style.display = 'none';
-        
-        tbody.innerHTML = orders.map(order => `
-            <tr>
-                <td><strong>${this.escapeHtml(order.order_number)}</strong></td>
-                <td>${this.escapeHtml(order.customer_name)}</td>
-                <td>${this.escapeHtml(order.project_name)}</td>
-                <td class="currency">¥${this.formatNumber(order.order_amount)}</td>
-                <td>${this.formatDate(order.order_date)}</td>
-                <td>${order.delivery_date ? this.formatDate(order.delivery_date) : '-'}</td>
-                <td>
-                    <span class="badge status-badge status-${order.status}">
-                        ${this.escapeHtml(order.status)}
-                    </span>
-                </td>
-                <td>
-                    <button type="button" class="btn btn-sm btn-outline-primary btn-action" 
-                            onclick="orderManager.editOrder(${order.id})" title="編集">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-action" 
-                            onclick="orderManager.confirmDelete(${order.id})" title="削除">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    }
-    
-    renderPagination(data) {
-        const pagination = document.getElementById('pagination');
-        
-        if (data.pages <= 1) {
-            pagination.innerHTML = '';
-            return;
-        }
-        
-        let paginationHtml = '';
-        
-        // Previous button
-        if (data.page > 1) {
-            paginationHtml += `
-                <li class="page-item">
-                    <a class="page-link" href="#" onclick="orderManager.goToPage(${data.page - 1})">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                </li>
-            `;
-        }
-        
-        // Page numbers
-        const startPage = Math.max(1, data.page - 2);
-        const endPage = Math.min(data.pages, data.page + 2);
-        
-        for (let i = startPage; i <= endPage; i++) {
-            paginationHtml += `
-                <li class="page-item ${i === data.page ? 'active' : ''}">
-                    <a class="page-link" href="#" onclick="orderManager.goToPage(${i})">${i}</a>
-                </li>
-            `;
-        }
-        
-        // Next button
-        if (data.page < data.pages) {
-            paginationHtml += `
-                <li class="page-item">
-                    <a class="page-link" href="#" onclick="orderManager.goToPage(${data.page + 1})">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                </li>
-            `;
-        }
-        
-        pagination.innerHTML = paginationHtml;
-    }
-    
-    goToPage(page) {
-        this.currentPage = page;
-        this.loadOrders();
-    }
-    
     async editOrder(orderId) {
         try {
-            // Get order data from the table (could also fetch from API)
-            const orders = await this.fetchOrderData();
-            const order = orders.find(o => o.id === orderId);
-            
-            if (!order) {
+            const row = this.table.getRow(orderId);
+            if (!row) {
                 this.showError('受注データが見つかりません');
                 return;
             }
+            const order = row.getData();
             
             this.editingOrderId = orderId;
             this.populateForm(order);
@@ -193,23 +162,6 @@ class OrderManager {
             console.error('Error editing order:', error);
             this.showError('受注データの取得中にエラーが発生しました');
         }
-    }
-    
-    async fetchOrderData() {
-        const params = new URLSearchParams({
-            page: this.currentPage,
-            per_page: this.perPage,
-            search: this.searchTerm
-        });
-        
-        const response = await fetch(`/api/orders?${params}`, {
-            headers: {
-                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
-            }
-        });
-        
-        const data = await response.json();
-        return data.orders;
     }
     
     populateForm(order) {
@@ -249,27 +201,24 @@ class OrderManager {
                 body: formData
             });
             
-            const data = await response.json();
+            const result = await response.json();
             
             if (!response.ok) {
-                if (data.errors) {
-                    this.showValidationErrors(data.errors);
+                if (response.status === 400 && result.errors) {
+                    this.showValidationErrors(result.errors);
                 } else {
-                    throw new Error(data.error || '保存に失敗しました');
+                    throw new Error(result.error || '保存中にエラーが発生しました');
                 }
-                return;
+            } else {
+                this.showSuccess(result.message);
+                this.hideModal('orderModal');
+                this.table.replaceData(); // データ保存後にテーブルを更新
             }
-            
-            // Success
-            this.showSuccess(data.message);
-            this.hideModal();
-            this.loadOrders();
-            
         } catch (error) {
             console.error('Error saving order:', error);
-            this.showError(error.message || '保存中にエラーが発生しました');
+            this.showError(error.message || '受注の保存中にエラーが発生しました');
         } finally {
-            // Reset button state
+            // Hide loading state
             const submitBtn = document.getElementById('orderSubmitBtn');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>保存';
@@ -291,67 +240,65 @@ class OrderManager {
                 }
             });
             
-            const data = await response.json();
-            
             if (!response.ok) {
-                throw new Error(data.error || '削除に失敗しました');
+                const errorData = await response.json();
+                throw new Error(errorData.error || '削除に失敗しました');
             }
             
-            this.showSuccess(data.message);
+            const result = await response.json();
+            this.showSuccess(result.message);
             this.hideModal('deleteModal');
-            this.loadOrders();
+            this.table.replaceData(); // 削除後にテーブルを更新
             
         } catch (error) {
             console.error('Error deleting order:', error);
-            this.showError(error.message || '削除中にエラーが発生しました');
+            this.showError(error.message || '受注の削除中にエラーが発生しました');
+        } finally {
+            this.deleteOrderId = null;
         }
     }
     
     resetForm() {
         document.getElementById('orderForm').reset();
+        document.getElementById('id').value = ''; // IDをクリア
         this.editingOrderId = null;
-        this.clearValidationErrors();
         
-        // Reset modal title
+        // Update modal title to '新規受注登録'
         document.getElementById('orderModalTitle').innerHTML = 
             '<i class="fas fa-plus me-2"></i>新規受注登録';
+        
+        this.clearValidationErrors();
     }
     
     clearValidationErrors() {
-        const errorElements = document.querySelectorAll('.invalid-feedback');
-        errorElements.forEach(el => el.textContent = '');
-        
-        const invalidInputs = document.querySelectorAll('.is-invalid');
-        invalidInputs.forEach(input => input.classList.remove('is-invalid'));
+        document.querySelectorAll('.is-invalid').forEach(el => {
+            el.classList.remove('is-invalid');
+        });
+        document.querySelectorAll('.invalid-feedback').forEach(el => {
+            el.textContent = '';
+        });
     }
     
     showValidationErrors(errors) {
-        for (const [field, messages] of Object.entries(errors)) {
-            const input = document.getElementById(field);
+        for (const fieldName in errors) {
+            const input = document.getElementById(fieldName);
             if (input) {
                 input.classList.add('is-invalid');
-                const feedback = input.parentNode.querySelector('.invalid-feedback');
-                if (feedback) {
-                    feedback.textContent = messages.join(', ');
+                const feedback = input.nextElementSibling; // Assuming invalid-feedback is next sibling
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.textContent = errors[fieldName][0];
                 }
             }
         }
     }
     
-    showLoading() {
-        document.getElementById('loadingSpinner').style.display = 'block';
-        document.getElementById('ordersTableContainer').style.display = 'none';
-        document.getElementById('emptyState').style.display = 'none';
-    }
-    
-    hideLoading() {
-        document.getElementById('loadingSpinner').style.display = 'none';
-    }
-    
-    hideModal(modalId = 'orderModal') {
-        const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
-        if (modal) {
-            modal.hide();
+    hideModal(modalId) {
+        const modalElement = document.getElementById(modalId);
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
         }
     }
     
@@ -364,61 +311,47 @@ class OrderManager {
     }
     
     showAlert(message, type) {
-        const alertHtml = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                ${this.escapeHtml(message)}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+        const alertContainer = document.getElementById('alertContainer');
+        if (!alertContainer) return;
+
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
-        
-        const container = document.querySelector('main .container');
-        container.insertAdjacentHTML('afterbegin', alertHtml);
-        
-        // Auto-hide after 5 seconds
+        alertContainer.appendChild(alertDiv);
+
         setTimeout(() => {
-            const alert = container.querySelector('.alert');
-            if (alert) {
-                const bsAlert = bootstrap.Alert.getInstance(alert);
-                if (bsAlert) {
-                    bsAlert.close();
-                }
+            if (alertDiv && alertDiv.parentNode) {
+                alertDiv.parentNode.removeChild(alertDiv);
             }
         }, 5000);
     }
-    
+
     formatNumber(num) {
-        return new Intl.NumberFormat('ja-JP').format(num);
+        return num.toLocaleString();
     }
     
     formatDate(dateString) {
+        if (!dateString) return '';
         const date = new Date(dateString);
-        return new Intl.DateTimeFormat('ja-JP', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        }).format(date);
+        return date.toLocaleDateString('ja-JP');
     }
     
     escapeHtml(text) {
         const div = document.createElement('div');
-        div.textContent = text;
+        div.appendChild(document.createTextNode(text));
         return div.innerHTML;
     }
 }
 
-// Global functions for onclick handlers
-function clearSearch() {
-    document.getElementById('searchInput').value = '';
-    orderManager.searchTerm = '';
-    orderManager.currentPage = 1;
-    orderManager.loadOrders();
-}
-
-function refreshOrders() {
-    orderManager.loadOrders();
-}
-
-// Initialize when DOM is loaded
+// Initialize the OrderManager when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.orderManager = new OrderManager();
+    // グローバル関数は不要になるので削除
+    // function clearSearch() { orderManager.clearSearch(); }
+    // function refreshOrders() { orderManager.refreshOrders(); }
 });
+
