@@ -56,7 +56,7 @@ def create_app():
     limiter.init_app(app)
     
     # Login manager configuration
-    login_manager.login_view = 'auth.login'
+    login_manager.login_view = 'login'
     login_manager.login_message = 'ログインが必要です。'
     login_manager.login_message_category = 'info'
     

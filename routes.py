@@ -268,6 +268,31 @@ def api_get_profit_data():
         logging.error(f"Error calculating profit data: {e}")
         return jsonify({'error': '利益データの計算中にエラーが発生しました'}), 500
 
+@app.route('/user/delete', methods=['POST'])
+@login_required
+@limiter.limit("5 per minute")
+def delete_user():
+    try:
+        # ユーザーに関連するデータを削除（必要な場合）
+        # 例: Order.query.filter_by(user_id=current_user.id).delete()
+        
+        # ユーザーを削除
+        db.session.delete(current_user)
+        db.session.commit()
+        
+        # ログアウト
+        logout_user()
+        
+        flash('アカウントが削除されました', 'success')
+        logging.info(f"User account deleted: {current_user.username}")
+        return redirect(url_for('login'))
+    
+    except Exception as e:
+        db.session.rollback()
+        flash('アカウント削除中にエラーが発生しました', 'error')
+        logging.error(f"Error deleting user account: {e}")
+        return redirect(url_for('orders'))
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
