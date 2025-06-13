@@ -18,49 +18,48 @@ class OrderManager {
                     "X-CSRFToken": document.querySelector('meta[name=csrf-token]').getAttribute('content')
                 },
             },
-            layout: "fitColumns",
+            layout: "fitDataTable",
             responsiveLayout: "hide",
             history: true,
-            pagination: "remote", // サーバーサイドページネーション
-            paginationSize: 20, // 1ページあたりの行数
-            paginationSizeSelector: [10, 20, 50, 100], // ページサイズ選択
-            movableColumns: true, // カラムの並べ替えを許可
-            resizableColumns: true, // カラムのリサイズを許可
-            tooltips: true, // ツールチップ表示
-            placeholder: "データがありません", // データがない場合のメッセージ
+            pagination: "remote",
+            paginationSize: 20,
+            paginationSizeSelector: [10, 20, 50, 100],
+            movableColumns: true,
+            resizableColumns: true,
+            tooltips: true,
+            placeholder: "データがありません",
             columns: [
-                { title: "受注日", field: "order_date", hozAlign: "center", sorter: "date" },
+                { title: "受注日", field: "order_date", hozAlign: "center", sorter: "date", width: 100, frozen: true },
                 {
-                    title: "受注金額", field: "order_amount", hozAlign: "right", sorter: "number",
+                    title: "受注金額", field: "order_amount", hozAlign: "right", sorter: "number", width: 120, frozen: true,
                     formatter: function (cell, formatterParams, onRendered) {
                         const value = parseInt(cell.getValue()) || 0;
                         return '¥' + value.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
                     }
                 },
                 {
-                    title: "請求金額", field: "invoiced_amount", hozAlign: "right", sorter: "number",
+                    title: "請求金額", field: "invoiced_amount", hozAlign: "right", sorter: "number", width: 120, frozen: true,
                     formatter: function (cell, formatterParams, onRendered) {
                         const value = parseInt(cell.getValue()) || 0;
                         return '¥' + value.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
                     }
                 },
                 {
-                    title: "売上金額", field: "sales_amount", hozAlign: "right", sorter: "number",
+                    title: "売上金額", field: "sales_amount", hozAlign: "right", sorter: "number", width: 120, frozen: true,
                     formatter: function (cell, formatterParams, onRendered) {
                         const value = parseInt(cell.getValue()) || 0;
                         return '¥' + value.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
-                    }
                 },
-                { title: "顧客名", field: "customer_name", sorter: "string" },
-                { title: "案件名", field: "project_name", sorter: "string" },
-                { title: "契約形態", field: "contract_type", sorter: "string" },
-                { title: "確度", field: "sales_stage", sorter: "string" },
-                { title: "請求日", field: "billing_month", hozAlign: "center", sorter: "date" },
+                { title: "顧客名", field: "customer_name", sorter: "string", width: 120 },
+                { title: "案件名", field: "project_name", sorter: "string", width: 200 },
+                { title: "契約", field: "contract_type", sorter: "string", width: 70 },
+                { title: "確度", field: "sales_stage", sorter: "string", width: 70 },
+                { title: "請求日", field: "billing_month", hozAlign: "center", sorter: "date", width: 100 },
                 {
-                    title: "仕掛", field: "work_in_progress", hozAlign: "center", formatter: "tickCross",
+                    title: "仕掛", field: "work_in_progress", hozAlign: "center", formatter: "tickCross", width: 70,
                     formatterParams: { allowEmpty: true, allowTruthy: true }
                 },
-                { title: "備考", field: "description", sorter: "string" },
+                { title: "備考", field: "description", sorter: "string", width: 250 },
                 {
                     title: "操作", field: "actions", hozAlign: "center", formatter: "html", width: 120, headerSort: false,
                     formatter: (cell, formatterParams, onRendered) => {
@@ -88,7 +87,7 @@ class OrderManager {
                 },
             ],
             ajaxResponse: function (url, params, response) {
-                return response.orders; // 受注データの配列を直接返す
+                return response.orders;
             },
         });
     }

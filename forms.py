@@ -80,9 +80,9 @@ class OrderForm(FlaskForm):
     order_date = DateField('受注日', validators=[
         DataRequired(message='受注日は必須です')
     ])
-    contract_type = StringField('契約形態', validators=[
-        Optional(),
-        Length(max=16, message='契約形態は16文字以下で入力してください')
+    contract_type = StringField('契約', validators=[
+        DataRequired(message='契約を入力してください'),
+        Length(max=16, message='契約は16文字以下で入力してください')
     ])
     sales_stage = StringField('確度', validators=[
         Optional(),
