@@ -2,149 +2,150 @@
 
 {% block title %}利益分析 - 受注管理システム{% endblock %}
 
-{% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2 class="mb-4">
-            <i class="fas fa-chart-pie me-2"></i>利益分析
-        </h2>
-    </div>
-</div>
-
-<!-- Cost Input Form -->
-<div class="row mb-4">
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-calculator me-2"></i>原価入力
-                </h5>
-            </div>
-            <div class="card-body">
-                <form id="costForm">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="employee_cost" class="form-label required">社員原価</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">¥</span>
-                                    <input type="number" class="form-control" id="employee_cost" name="employee_cost" step="0.01" min="0">
-                                </div>
-                                <div class="form-text">社員の人件費など</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="bp_cost" class="form-label required">BP原価</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">¥</span>
-                                    <input type="number" class="form-control" id="bp_cost" name="bp_cost" step="0.01" min="0">
-                                </div>
-                                <div class="form-text">業務委託費など</div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Profit Summary -->
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-line me-2"></i>利益サマリー
-                </h5>
-            </div>
-            <div class="card-body" id="profitSummary">
-                <div id="loadingProfit" class="text-center py-4">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">読み込み中...</span>
-                    </div>
-                </div>
-                
-                <div id="profitData" style="display: none;">
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <div class="border-end">
-                                <h3 class="text-primary mb-1" id="totalRevenue">¥0</h3>
-                                <p class="text-muted mb-0">総売上</p>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <h3 class="text-info mb-1" id="totalCost">¥0</h3>
-                            <p class="text-muted mb-0">総原価</p>
-                        </div>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="text-center">
-                        <h2 class="mb-2" id="totalProfit">¥0</h2>
-                        <p class="text-muted mb-2">粗利益</p>
-                        <div class="progress mb-2" style="height: 10px;">
-                            <div class="progress-bar" id="profitProgressBar" role="progressbar" style="width: 0%"></div>
-                        </div>
-                        <p class="mb-0">
-                            <span id="profitRate">0%</span> 利益率
-                        </p>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="text-center">
-                                <h6 class="text-muted">社員原価</h6>
-                                <p class="mb-0" id="employeeCost">¥0</p>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="text-center">
-                                <h6 class="text-muted">BP原価</h6>
-                                <p class="mb-0" id="bpCost">¥0</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="noProfitData" class="text-center py-4" style="display: none;">
-                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
-                    <h6 class="text-muted">受注データがありません</h6>
-                    <p class="text-muted mb-0">受注データを入力してください</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Detailed Breakdown -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-bar me-2"></i>詳細分析
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-lg-6">
-                        <canvas id="profitChart" width="400" height="300"></canvas>
-                    </div>
-                    <div class="col-lg-6">
-                        <canvas id="costBreakdownChart" width="400" height="300"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+{% block head %}
+{{ super() }}
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 {% endblock %}
 
-{% block head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Alert Container -->
+    <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1060;"></div>
+    
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">利益分析</h1>
+            
+            <!-- Loading Overlay -->
+            <div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none" style="background: rgba(255, 255, 255, 0.8); z-index: 1050;">
+                <div class="position-absolute top-50 start-50 translate-middle text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">読み込み中...</span>
+                    </div>
+                    <div class="mt-2">データを読み込み中...</div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <h2 class="mb-4">
+                        <i class="fas fa-chart-pie me-2"></i>利益分析
+                    </h2>
+                </div>
+            </div>
+
+            <!-- Project and Period Selection -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">分析条件</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="analysisForm" class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="projectSelect" class="form-label">プロジェクト</label>
+                                    <select class="form-select" id="projectSelect" name="project" required>
+                                        <option value="">プロジェクトを選択</option>
+                                        <option value="all">すべてのプロジェクト</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="startDate" class="form-label">開始日</label>
+                                    <input type="month" class="form-control" id="startDate" name="start_date" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="endDate" class="form-label">終了日</label>
+                                    <input type="month" class="form-control" id="endDate" name="end_date" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="employee_cost" class="form-label">社員コスト</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="employee_cost" name="employee_cost" min="0" step="1" value="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                        <span class="input-group-text">円</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="bp_cost" class="form-label">BPコスト</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="bp_cost" name="bp_cost" min="0" step="1" value="0" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                        <span class="input-group-text">円</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-chart-line"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profit Summary -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">利益サマリー</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="noProfitData" class="text-center py-5" style="display: none;">
+                                <h6 class="text-muted">データがありません</h6>
+                                <p class="text-muted mb-0">プロジェクトと期間を選択してください</p>
+                            </div>
+                            <div id="profitData" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <h6 class="text-muted mb-3" id="periodInfo"></h6>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <span>売上</span>
+                                            <h5 class="mb-0" id="totalRevenue">¥0</h5>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <span>総コスト</span>
+                                            <h5 class="mb-0" id="totalCost">¥0</h5>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <span>利益</span>
+                                            <h4 class="mb-0" id="totalProfit">¥0</h4>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <span>利益率</span>
+                                            <h5 class="mb-0" id="profitRate">0%</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Breakdown -->
+            <!-- <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>詳細分析
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <canvas id="profitChart" width="400" height="300"></canvas>
+                            </div>
+                            <div class="col-lg-6">
+                                <canvas id="costBreakdownChart" width="400" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div> -->
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}

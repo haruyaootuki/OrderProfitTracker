@@ -1,9 +1,11 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func, distinct
 from decimal import Decimal
 import logging
+from datetime import datetime, timedelta, date
+from calendar import monthrange
 
 from app import app, db, limiter
 from models import User, Order
@@ -229,30 +231,151 @@ def api_delete_order(order_id):
 def profit_analysis():
     return render_template('profit_analysis.html')
 
+@app.route('/api/projects', methods=['GET'])
+@login_required
+@limiter.limit("60 per minute")
+def api_get_projects():
+    try:
+        # プロジェクト名の一覧を取得（重複を除く）
+        projects = db.session.query(distinct(Order.project_name))\
+            .filter_by(user_id=current_user.id)\
+            .order_by(Order.project_name)\
+            .all()
+        
+        return jsonify({
+            'projects': [project[0] for project in projects]
+        })
+    
+    except Exception as e:
+        logging.error(f"Error fetching projects: {e}")
+        return jsonify({'error': 'プロジェクト一覧の取得中にエラーが発生しました'}), 500
+
+@app.route('/api/orders/period', methods=['GET'])
+@login_required
+@limiter.limit("60 per minute")
+def api_get_orders_by_period():
+    try:
+        project_name = request.args.get('project')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        if not all([project_name, start_date, end_date]):
+            return jsonify({'error': 'プロジェクト名と期間を指定してください'}), 400
+        
+        # 日付文字列をdatetimeオブジェクトに変換
+        try:
+            # YYYY-MM形式をYYYY-MM-DD形式に変換
+            start_year, start_month = map(int, start_date.split('-'))
+            start_date_obj = date(start_year, start_month, 1)
+            
+            end_year, end_month = map(int, end_date.split('-'))
+            _, last_day = monthrange(end_year, end_month)
+            end_date_obj = date(end_year, end_month, last_day)
+        except ValueError:
+            return jsonify({'error': '無効な年月形式です'}), 400
+        
+        # 指定された期間とプロジェクトの受注を取得
+        query = Order.query.filter(
+            Order.user_id == current_user.id,
+            Order.order_date >= start_date_obj,
+            Order.order_date <= end_date_obj
+        )
+
+        if project_name != 'all':
+            query = query.filter(Order.project_name == project_name)
+
+        orders = query.all()
+        
+        # 総売上を計算
+        total_revenue = sum(order.order_amount for order in orders)
+        
+        return jsonify({
+            'orders': [order.to_dict() for order in orders],
+            'total_revenue': float(total_revenue),
+            'start_date': start_date_obj.strftime('%Y-%m'),
+            'end_date': end_date_obj.strftime('%Y-%m'),
+            'project_name': project_name
+        })
+    
+    except ValueError as e:
+        logging.error(f"Invalid date format or data for orders by period: {e}")
+        return jsonify({'error': '日付の形式が正しくありません'}), 400
+    except Exception as e:
+        logging.error(f"Error fetching orders by period: {e}")
+        return jsonify({'error': 'データの取得中にエラーが発生しました'}), 500
+
 @app.route('/api/profit-data', methods=['GET'])
 @login_required
 @limiter.limit("60 per minute")
 def api_get_profit_data():
     try:
-        # Calculate total revenue from orders
-        total_revenue = db.session.query(db.func.sum(Order.order_amount))\
-                                 .filter_by(user_id=current_user.id)\
-                                 .scalar() or Decimal('0')
+        project = request.args.get('project')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # コストの取得とバリデーション
+        try:
+            employee_cost = int(request.args.get('employee_cost', 0))
+            bp_cost = int(request.args.get('bp_cost', 0))
+            if employee_cost < 0 or bp_cost < 0:
+                return jsonify({'error': 'コストは0以上の整数で入力してください'}), 400
+        except ValueError:
+            return jsonify({'error': 'コストは整数で入力してください'}), 400
+        
+        if not all([project, start_date, end_date]):
+            return jsonify({'error': 'プロジェクトと期間を指定してください'}), 400
+            
+        # 日付のバリデーションと変換
+        try:
+            # YYYY-MM形式をYYYY-MM-DD形式に変換
+            start_year, start_month = map(int, start_date.split('-'))
+            start_date_obj = date(start_year, start_month, 1)
+            
+            end_year, end_month = map(int, end_date.split('-'))
+            _, last_day = monthrange(end_year, end_month)
+            end_date_obj = date(end_year, end_month, last_day)
+        except ValueError:
+            return jsonify({'error': '無効な年月形式です'}), 400
+            
+        # 期間内の受注を取得
+        query = Order.query.filter(
+            Order.user_id == current_user.id,
+            Order.order_date >= start_date_obj,
+            Order.order_date <= end_date_obj
+        )
+
+        if project != 'all':
+            query = query.filter(Order.project_name == project)
+
+        orders = query.all()
+        
+        # 売上合計を計算
+        total_revenue = sum(order.order_amount for order in orders)
+        
+        # コストを加味した利益計算
+        total_cost = employee_cost + bp_cost
+        profit = total_revenue - total_cost
+        
+        # 利益率の計算（確実に数値型として計算）
+        profit_rate = float(0)
+        if total_revenue > 0:
+            profit_rate = float(profit) / float(total_revenue) * 100
         
         return jsonify({
+            'project_name': project,
+            'start_date': start_date_obj.strftime('%Y-%m'),
+            'end_date': end_date_obj.strftime('%Y-%m'),
             'total_revenue': float(total_revenue),
-            'employee_cost': 0,  # 手動入力用
-            'bp_cost': 0,  # 手動入力用
-            'total_cost': 0,  # 手動入力用
-            'profit': float(total_revenue),  # 手動入力用の原価が0なので、売上と同じ
-            'profit_rate': 100,  # 手動入力用の原価が0なので、100%
-            'period_start': None,  # 手動入力用
-            'period_end': None  # 手動入力用
+            'total_cost': float(total_cost),
+            'profit': float(profit),
+            'profit_rate': float(profit_rate),
+            'employee_cost': float(employee_cost),
+            'bp_cost': float(bp_cost)
         })
     
     except Exception as e:
         logging.error(f"Error fetching profit data: {e}")
-        return jsonify({'error': 'データの取得中にエラーが発生しました'}), 500
+        return jsonify({'error': '利益データの取得中にエラーが発生しました'}), 500
 
 @app.errorhandler(404)
 def not_found_error(error):
