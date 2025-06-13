@@ -127,11 +127,9 @@ class ProfitAnalyzer {
     }
     
     renderProfitData(data) {
-        // `profitData` を `profitDataDisplay` に変更
         const profitDataDisplay = document.getElementById('profitDataDisplay');
         const noProfitData = document.getElementById('noProfitData');
 
-        // 売上、受注、請求金額のいずれかが0の場合は非表示 (条件を追加)
         if (data.total_sales_amount === 0 && data.total_order_amount === 0 && data.total_invoiced_amount === 0) {
             profitDataDisplay.style.display = 'none';
             noProfitData.style.display = 'block';
@@ -141,7 +139,6 @@ class ProfitAnalyzer {
         profitDataDisplay.style.display = 'block';
         noProfitData.style.display = 'none';
 
-        // Update values
         const projectName = document.getElementById('projectSelect').value;
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
@@ -149,7 +146,6 @@ class ProfitAnalyzer {
         const projectNameDisplay = projectName === 'all' ? 'すべてのプロジェクト' : projectName;
         document.getElementById('periodInfo').textContent = `${projectNameDisplay} (${this.formatDate(startDate)} 〜 ${this.formatDate(endDate)})`;
 
-        // 新しい要素IDに合わせて更新
         document.getElementById('totalSalesAmount').textContent = `¥${data.total_sales_amount.toLocaleString()}`;
         document.getElementById('totalOrderAmount').textContent = `¥${data.total_order_amount.toLocaleString()}`;
         document.getElementById('totalInvoicedAmount').textContent = `¥${data.total_invoiced_amount.toLocaleString()}`;
@@ -159,14 +155,13 @@ class ProfitAnalyzer {
         const bpCost = parseInt(document.getElementById('bp_cost_input').value) || 0;
 
         const totalCost = employeeCost + bpCost;
-        const profit = data.total_sales_amount - totalCost; // 売上からコストを引く
+        const profit = data.total_sales_amount - totalCost;
 
         let profitRate = 0;
         if (data.total_sales_amount > 0) {
             profitRate = (profit / data.total_sales_amount) * 100;
         }
 
-        // 新しい要素IDに合わせて更新
         document.getElementById('calculatedTotalCost').textContent = `¥${totalCost.toLocaleString()}`;
         document.getElementById('calculatedProfit').textContent = `¥${profit.toLocaleString()}`;
 
@@ -311,7 +306,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalSalesAmount = document.getElementById('totalSalesAmount');
     const totalOrderAmount = document.getElementById('totalOrderAmount');
     const totalInvoicedAmount = document.getElementById('totalInvoicedAmount');
-    const manualCost = document.getElementById('manualCost');
     const calculatedTotalCost = document.getElementById('calculatedTotalCost');
     const calculatedProfit = document.getElementById('calculatedProfit');
     const calculatedProfitRate = document.getElementById('calculatedProfitRate');
@@ -369,11 +363,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 totalInvoicedAmount.textContent = formatCurrency(data.total_invoiced_amount);
 
                 // コストと利益を計算
-                const totalManualCost = employeeCost + bpCost;
-                manualCost.textContent = formatCurrency(totalManualCost);
-                calculatedTotalCost.textContent = formatCurrency(totalManualCost);
+                const totalCost = employeeCost + bpCost;
+                calculatedTotalCost.textContent = formatCurrency(totalCost);
                 
-                const profit = data.total_sales_amount - totalManualCost;
+                const profit = data.total_sales_amount - totalCost;
                 calculatedProfit.textContent = formatCurrency(profit);
                 
                 const profitRate = data.total_sales_amount > 0 
