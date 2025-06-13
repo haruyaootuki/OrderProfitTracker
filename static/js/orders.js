@@ -33,26 +33,29 @@ class OrderManager {
                 {
                     title: "受注金額", field: "order_amount", hozAlign: "right", sorter: "number",
                     formatter: function (cell, formatterParams, onRendered) {
-                        return '¥' + parseFloat(cell.getValue()).toLocaleString();
+                        const value = parseInt(cell.getValue()) || 0;
+                        return '¥' + value.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
                     }
                 },
                 {
                     title: "請求金額", field: "invoiced_amount", hozAlign: "right", sorter: "number",
                     formatter: function (cell, formatterParams, onRendered) {
-                        return '¥' + parseFloat(cell.getValue()).toLocaleString();
+                        const value = parseInt(cell.getValue()) || 0;
+                        return '¥' + value.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
                     }
                 },
                 {
                     title: "売上金額", field: "sales_amount", hozAlign: "right", sorter: "number",
                     formatter: function (cell, formatterParams, onRendered) {
-                        return '¥' + parseFloat(cell.getValue()).toLocaleString();
+                        const value = parseInt(cell.getValue()) || 0;
+                        return '¥' + value.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
                     }
                 },
                 { title: "顧客名", field: "customer_name", sorter: "string" },
                 { title: "案件名", field: "project_name", sorter: "string" },
                 { title: "契約形態", field: "contract_type", sorter: "string" },
                 { title: "確度", field: "sales_stage", sorter: "string" },
-                { title: "請求月", field: "billing_month", hozAlign: "center", sorter: "date" },
+                { title: "請求日", field: "billing_month", hozAlign: "center", sorter: "date" },
                 {
                     title: "仕掛", field: "work_in_progress", hozAlign: "center", formatter: "tickCross",
                     formatterParams: { allowEmpty: true, allowTruthy: true }
@@ -111,12 +114,6 @@ class OrderManager {
             this.table.replaceData(); // 現在のフィルターとソートを維持してデータを再読み込み
         });
         
-        // Order form submission
-        document.getElementById('orderForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.saveOrder();
-        });
-        
         // Modal events
         document.getElementById('orderModal').addEventListener('hidden.bs.modal', () => {
             this.resetForm();
@@ -125,6 +122,73 @@ class OrderManager {
         // Delete confirmation
         document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
             this.deleteOrder();
+        });
+
+        this.initializeFormHandlers();
+    }
+    
+    initializeFormHandlers() {
+        const form = document.getElementById('orderForm');
+        const modal = document.getElementById('orderModal');
+        const modalTitle = document.getElementById('orderModalTitle');
+        const submitBtn = document.getElementById('orderSubmitBtn');
+        const deleteBtn = document.getElementById('confirmDeleteBtn');
+
+        // 数値入力フィールドのフォーマット処理
+        const formatNumberInput = (input) => {
+            // 数値以外を除去（カンマは許可）
+            let value = input.value.replace(/[^\d,]/g, '');
+            // カンマを除去して数値に変換
+            let numValue = parseInt(value.replace(/,/g, '')) || 0;
+            // 10億を超える場合は10億に制限
+            if (numValue > 1000000000) {
+                numValue = 1000000000;
+            }
+            // カンマ区切りを適用
+            input.value = numValue.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+        };
+
+        // 数値入力フィールドのイベントリスナーを設定
+        const numberInputs = ['sales_amount', 'order_amount', 'invoiced_amount'];
+        numberInputs.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                // 初期値を0に設定
+                if (!input.value) {
+                    input.value = '0';
+                } else {
+                    // 既存の値がある場合はカンマ区切りで表示
+                    input.value = parseInt(input.value).toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+                }
+
+                // 入力時の処理
+                input.addEventListener('input', (e) => {
+                    // 入力中の値はそのまま表示（カンマは許可）
+                    e.target.value = e.target.value.replace(/[^\d,]/g, '');
+                });
+
+                // フォーカスを失った時のフォーマット
+                input.addEventListener('blur', () => {
+                    formatNumberInput(input);
+                    // 空の場合は0を表示
+                    if (!input.value) {
+                        input.value = '0';
+                    }
+                });
+
+                // フォーカスを得た時の処理
+                input.addEventListener('focus', () => {
+                    // カンマを除去して数値のみを表示
+                    const value = input.value.replace(/,/g, '');
+                    input.value = value === '0' ? '' : value;
+                });
+            }
+        });
+
+        // フォーム送信時の処理
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.saveOrder();
         });
     }
     
@@ -158,9 +222,14 @@ class OrderManager {
         document.getElementById('id').value = order.id;
         document.getElementById('customer_name').value = order.customer_name;
         document.getElementById('project_name').value = order.project_name;
-        document.getElementById('sales_amount').value = order.sales_amount;
-        document.getElementById('order_amount').value = order.order_amount;
-        document.getElementById('invoiced_amount').value = order.invoiced_amount;
+        // 数値フィールドの初期表示を改善
+        const formatAmount = (amount) => {
+            const value = parseInt(amount) || 0;
+            return value.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+        };
+        document.getElementById('sales_amount').value = formatAmount(order.sales_amount);
+        document.getElementById('order_amount').value = formatAmount(order.order_amount);
+        document.getElementById('invoiced_amount').value = formatAmount(order.invoiced_amount);
         document.getElementById('order_date').value = order.order_date;
         document.getElementById('contract_type').value = order.contract_type || '';
         document.getElementById('sales_stage').value = order.sales_stage || '';
@@ -185,6 +254,14 @@ class OrderManager {
             const url = this.editingOrderId ? 
                 `/api/orders/${this.editingOrderId}` : '/api/orders';
             const method = this.editingOrderId ? 'PUT' : 'POST';
+            
+            // 数値フィールドのカンマを除去
+            const numberFields = ['sales_amount', 'order_amount', 'invoiced_amount'];
+            numberFields.forEach(field => {
+                if (formData[field]) {
+                    formData[field] = formData[field].replace(/,/g, '');
+                }
+            });
             
             const response = await fetch(url, {
                 method: method,

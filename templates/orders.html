@@ -24,7 +24,7 @@
                     <span class="input-group-text">
                         <i class="fas fa-search"></i>
                     </span>
-                    <input type="text" class="form-control" id="searchInput" placeholder="顧客名、プロジェクト名で検索">
+                    <input type="text" class="form-control" id="searchInput" placeholder="顧客名、案件名で検索">
                 </div>
             </div>
             <div class="col-md-6 mt-2 mt-md-0">
@@ -81,7 +81,7 @@
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
-                                {{ form.sales_amount.label(class="form-label required") }}
+                                {{ form.sales_amount.label(class="form-label") }}
                                 <div class="input-group">
                                     <span class="input-group-text">¥</span>
                                     {{ form.sales_amount(class="form-control") }}
@@ -91,7 +91,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                {{ form.order_amount.label(class="form-label required") }}
+                                {{ form.order_amount.label(class="form-label") }}
                                 <div class="input-group">
                                     <span class="input-group-text">¥</span>
                                     {{ form.order_amount(class="form-control") }}
@@ -101,7 +101,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                {{ form.invoiced_amount.label(class="form-label required") }}
+                                {{ form.invoiced_amount.label(class="form-label") }}
                                 <div class="input-group">
                                     <span class="input-group-text">¥</span>
                                     {{ form.invoiced_amount(class="form-control") }}
@@ -132,14 +132,14 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 {{ form.contract_type.label(class="form-label") }}
-                                {{ form.contract_type(class="form-select") }}
+                                {{ form.contract_type(class="form-control", placeholder="例：準委任、請負、派遣など") }}
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 {{ form.sales_stage.label(class="form-label") }}
-                                {{ form.sales_stage(class="form-select") }}
+                                {{ form.sales_stage(class="form-control", placeholder="例：提案中、受注済、失注、完了など") }}
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
