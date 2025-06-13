@@ -14,30 +14,42 @@ class ProfitAnalyzer {
             e.preventDefault();
             this.loadProfitData();
         });
-        
-        // コスト入力の変更を監視
-        const costInputs = ['employee_cost', 'bp_cost'];
-        costInputs.forEach(inputId => {
-            const input = document.getElementById(inputId);
-            if (input) {
-                input.addEventListener('input', (e) => {
-                    // 小数点以下を削除
-                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                    this.calculateRealTimeProfit();
-                });
-            }
-        });
+
+        // コスト入力の変更を監視 (変更)
+        const employeeCostInput = document.getElementById('employee_cost_input');
+        const bpCostInput = document.getElementById('bp_cost_input');
+
+        if (employeeCostInput) {
+            employeeCostInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                if (this.currentData) {
+                    this.renderProfitData(this.currentData);
+                }
+            });
+        }
+
+        if (bpCostInput) {
+            bpCostInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                if (this.currentData) {
+                    this.renderProfitData(this.currentData);
+                }
+            });
+        }
     }
     
     initializeDateInputs() {
-        // デフォルトで現在年月を設定
+        // デフォルトで現在年月を設定 -> YYYY-MM-DD形式に変更
         const today = new Date();
         const year = today.getFullYear();
         const month = (today.getMonth() + 1).toString().padStart(2, '0');
-        const currentMonth = `${year}-${month}`;
-        
-        document.getElementById('startDate').value = currentMonth;
-        document.getElementById('endDate').value = currentMonth;
+
+        // 月の最初の日と最後の日を計算
+        const firstDayOfMonth = new Date(year, today.getMonth(), 1);
+        const lastDayOfMonth = new Date(year, today.getMonth() + 1, 0);
+
+        document.getElementById('startDate').value = firstDayOfMonth.toISOString().split('T')[0];
+        document.getElementById('endDate').value = lastDayOfMonth.toISOString().split('T')[0];
     }
     
     async loadProjects() {
@@ -76,44 +88,38 @@ class ProfitAnalyzer {
     
     async loadProfitData() {
         try {
-            const project = document.getElementById('projectSelect').value;
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const employeeCost = document.getElementById('employee_cost').value.replace(/[^0-9]/g, '');
-            const bpCost = document.getElementById('bp_cost').value.replace(/[^0-9]/g, '');
-            
-            if (!project || !startDate || !endDate) {
-                this.showError('プロジェクトと期間を選択してください');
+            const project_name = document.getElementById('projectSelect').value;
+            const start_date = document.getElementById('startDate').value;
+            const end_date = document.getElementById('endDate').value;
+
+            if (!project_name || !start_date || !end_date) {
+                this.showError('プロジェクト名、開始日、終了日は必須です');
                 return;
             }
-            
-            // コストのバリデーション
-            if (isNaN(employeeCost) || isNaN(bpCost)) {
-                this.showError('コストは整数で入力してください');
-                return;
-            }
-            
+            // `employeeCost` と `bpCost` の取得とバリデーションを削除
+
             try {
                 this.showProfitLoading();
-                
-                const response = await fetch(`/api/profit-data?project=${encodeURIComponent(project)}&start_date=${startDate}&end_date=${endDate}&employee_cost=${employeeCost}&bp_cost=${bpCost}`, {
+
+                // URLからコストパラメータを削除
+                const response = await fetch(`/api/profit-data?project_name=${encodeURIComponent(project_name)}&start_date=${start_date}&end_date=${end_date}`, {
                     headers: {
                         'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
                     }
                 });
-                
+
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.error || 'データの取得に失敗しました');
                 }
-                
+
                 const data = await response.json();
-                this.currentData = data;
+                this.currentData = data; // 最新データを保存
                 this.renderProfitData(data);
             } finally {
                 this.hideProfitLoading();
             }
-            
+
         } catch (error) {
             console.error('Error loading profit data:', error);
             this.showError(error.message || '利益データの読み込み中にエラーが発生しました');
@@ -121,69 +127,59 @@ class ProfitAnalyzer {
     }
     
     renderProfitData(data) {
-        const profitData = document.getElementById('profitData');
+        // `profitData` を `profitDataDisplay` に変更
+        const profitDataDisplay = document.getElementById('profitDataDisplay');
         const noProfitData = document.getElementById('noProfitData');
-        
-        if (data.total_revenue === 0) {
-            profitData.style.display = 'none';
+
+        // 売上、受注、請求金額のいずれかが0の場合は非表示 (条件を追加)
+        if (data.total_sales_amount === 0 && data.total_order_amount === 0 && data.total_invoiced_amount === 0) {
+            profitDataDisplay.style.display = 'none';
             noProfitData.style.display = 'block';
             return;
         }
-        
-        profitData.style.display = 'block';
+
+        profitDataDisplay.style.display = 'block';
         noProfitData.style.display = 'none';
-        
+
         // Update values
-        const projectNameDisplay = data.project_name === 'all' ? 'すべてのプロジェクト' : data.project_name;
-        document.getElementById('periodInfo').textContent = `${projectNameDisplay} (${this.formatDate(data.start_date)} 〜 ${this.formatDate(data.end_date)})`;
-        document.getElementById('totalRevenue').textContent = `¥${data.total_revenue.toLocaleString()}`;
-        document.getElementById('totalCost').textContent = `¥${data.total_cost.toLocaleString()}`;
-        document.getElementById('totalProfit').textContent = `¥${data.profit.toLocaleString()}`;
-        
-        // Update profit rate and styling
-        const profitRateElement = document.getElementById('profitRate');
+        const projectName = document.getElementById('projectSelect').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
 
-        if (typeof data.profit_rate === 'number') {
-            const profitRate = parseFloat(data.profit_rate.toFixed(1));
-            profitRateElement.textContent = `${profitRate}%`;
+        const projectNameDisplay = projectName === 'all' ? 'すべてのプロジェクト' : projectName;
+        document.getElementById('periodInfo').textContent = `${projectNameDisplay} (${this.formatDate(startDate)} 〜 ${this.formatDate(endDate)})`;
 
-            // 利益が0未満の場合は赤色、それ以外は緑色に設定
-            if (data.profit < 0) {
-                profitRateElement.classList.remove('text-success');
-                profitRateElement.classList.add('text-danger');
-            } else {
-                profitRateElement.classList.remove('text-danger');
-                profitRateElement.classList.add('text-success');
-            }
+        // 新しい要素IDに合わせて更新
+        document.getElementById('totalSalesAmount').textContent = `¥${data.total_sales_amount.toLocaleString()}`;
+        document.getElementById('totalOrderAmount').textContent = `¥${data.total_order_amount.toLocaleString()}`;
+        document.getElementById('totalInvoicedAmount').textContent = `¥${data.total_invoiced_amount.toLocaleString()}`;
+
+        // 手動入力された社員コストとBPコストを取得し、計算
+        const employeeCost = parseInt(document.getElementById('employee_cost_input').value) || 0;
+        const bpCost = parseInt(document.getElementById('bp_cost_input').value) || 0;
+
+        const totalCost = employeeCost + bpCost;
+        const profit = data.total_sales_amount - totalCost; // 売上からコストを引く
+
+        let profitRate = 0;
+        if (data.total_sales_amount > 0) {
+            profitRate = (profit / data.total_sales_amount) * 100;
+        }
+
+        // 新しい要素IDに合わせて更新
+        document.getElementById('calculatedTotalCost').textContent = `¥${totalCost.toLocaleString()}`;
+        document.getElementById('calculatedProfit').textContent = `¥${profit.toLocaleString()}`;
+
+        const profitRateElement = document.getElementById('calculatedProfitRate');
+        profitRateElement.textContent = `${profitRate.toFixed(1)}%`;
+
+        if (profit < 0) {
+            profitRateElement.classList.remove('text-success');
+            profitRateElement.classList.add('text-danger');
         } else {
-            profitRateElement.textContent = '0%';
             profitRateElement.classList.remove('text-danger');
             profitRateElement.classList.add('text-success');
         }
-    }
-    
-    calculateRealTimeProfit() {
-        if (!this.currentData) return;
-        
-        const employeeCost = parseInt(document.getElementById('employee_cost').value.replace(/[^0-9]/g, '')) || 0;
-        const bpCost = parseInt(document.getElementById('bp_cost').value.replace(/[^0-9]/g, '')) || 0;
-        const totalCost = employeeCost + bpCost;
-        const profit = this.currentData.total_revenue - totalCost;
-        
-        // 利益率の計算（確実に数値型として計算）
-        let profitRate = 0;
-        if (this.currentData.total_revenue > 0) {
-            profitRate = (profit / this.currentData.total_revenue) * 100;
-        }
-        
-        // Update the display with new calculations
-        this.currentData.employee_cost = employeeCost;
-        this.currentData.bp_cost = bpCost;
-        this.currentData.total_cost = totalCost;
-        this.currentData.profit = profit;
-        this.currentData.profit_rate = profitRate;
-        
-        this.renderProfitData(this.currentData);
     }
     
     showProfitLoading() {
@@ -262,14 +258,9 @@ class ProfitAnalyzer {
     }
     
     formatDate(dateStr) {
-        // YYYY-MM 形式の文字列を YYYY年MM月 に変換
-        const parts = dateStr.split('-');
-        if (parts.length === 2) {
-            return `${parts[0]}年${parts[1]}月`;
-        } else {
-            // それ以外の形式の場合はそのまま返すか、エラー処理
-            return dateStr;
-        }
+        // YYYY-MM-DD 形式の日付文字列を YYYY年M月D日 形式に変換
+        const [year, month, day] = dateStr.split('-');
+        return `${parseInt(year)}年${parseInt(month)}月${parseInt(day)}日`;
     }
     
     escapeHtml(text) {
@@ -281,5 +272,143 @@ class ProfitAnalyzer {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new ProfitAnalyzer();
+    const analyzer = new ProfitAnalyzer(); // ProfitAnalyzerのインスタンスを一つだけ作成
+
+    // コスト入力フィールドのイベントリスナーを再設定 (変更)
+    const employeeCostInput = document.getElementById('employee_cost_input');
+    const bpCostInput = document.getElementById('bp_cost_input');
+
+    if (employeeCostInput) {
+        employeeCostInput.addEventListener('input', () => {
+            // インスタンスを再利用してrenderProfitDataを呼び出す
+            if (analyzer.currentData) {
+                analyzer.renderProfitData(analyzer.currentData);
+            }
+        });
+    }
+
+    if (bpCostInput) {
+        bpCostInput.addEventListener('input', () => {
+            // インスタンスを再利用してrenderProfitDataを呼び出す
+            if (analyzer.currentData) {
+                analyzer.renderProfitData(analyzer.currentData);
+            }
+        });
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const analysisForm = document.getElementById('analysisForm');
+    const projectSelect = document.getElementById('projectSelect');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const employeeCostInput = document.getElementById('employee_cost_input');
+    const bpCostInput = document.getElementById('bp_cost_input');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const noProfitData = document.getElementById('noProfitData');
+    const profitDataDisplay = document.getElementById('profitDataDisplay');
+    const periodInfo = document.getElementById('periodInfo');
+    const totalSalesAmount = document.getElementById('totalSalesAmount');
+    const totalOrderAmount = document.getElementById('totalOrderAmount');
+    const totalInvoicedAmount = document.getElementById('totalInvoicedAmount');
+    const manualCost = document.getElementById('manualCost');
+    const calculatedTotalCost = document.getElementById('calculatedTotalCost');
+    const calculatedProfit = document.getElementById('calculatedProfit');
+    const calculatedProfitRate = document.getElementById('calculatedProfitRate');
+
+    // プロジェクト一覧を取得
+    fetch('/api/projects')
+        .then(response => response.json())
+        .then(data => {
+            data.projects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project;
+                option.textContent = project;
+                projectSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching projects:', error);
+            showAlert('プロジェクト一覧の取得に失敗しました', 'danger');
+        });
+
+    // フォーム送信時の処理
+    analysisForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const projectName = projectSelect.value;
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+        const employeeCost = parseInt(employeeCostInput.value) || 0;
+        const bpCost = parseInt(bpCostInput.value) || 0;
+
+        if (!projectName || !startDate || !endDate) {
+            showAlert('プロジェクト、開始日、終了日をすべて入力してください', 'warning');
+            return;
+        }
+
+        // ローディング表示
+        loadingOverlay.classList.remove('d-none');
+        noProfitData.style.display = 'none';
+        profitDataDisplay.style.display = 'none';
+
+        // データを取得
+        fetch(`/api/profit-data?project_name=${encodeURIComponent(projectName)}&start_date=${startDate}&end_date=${endDate}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // 期間情報を表示
+                periodInfo.textContent = `${projectName} (${startDate} 〜 ${endDate})`;
+
+                // 金額を表示
+                totalSalesAmount.textContent = formatCurrency(data.total_sales_amount);
+                totalOrderAmount.textContent = formatCurrency(data.total_order_amount);
+                totalInvoicedAmount.textContent = formatCurrency(data.total_invoiced_amount);
+
+                // コストと利益を計算
+                const totalManualCost = employeeCost + bpCost;
+                manualCost.textContent = formatCurrency(totalManualCost);
+                calculatedTotalCost.textContent = formatCurrency(totalManualCost);
+                
+                const profit = data.total_sales_amount - totalManualCost;
+                calculatedProfit.textContent = formatCurrency(profit);
+                
+                const profitRate = data.total_sales_amount > 0 
+                    ? (profit / data.total_sales_amount * 100).toFixed(1)
+                    : 0;
+                calculatedProfitRate.textContent = `${profitRate}%`;
+
+                // 結果を表示
+                profitDataDisplay.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert(error.message || 'データの取得に失敗しました', 'danger');
+                noProfitData.style.display = 'block';
+            })
+            .finally(() => {
+                loadingOverlay.classList.add('d-none');
+            });
+    });
+
+    // 通貨フォーマット関数
+    function formatCurrency(amount) {
+        return '¥' + amount.toLocaleString();
+    }
+
+    // アラート表示関数
+    function showAlert(message, type) {
+        const alertContainer = document.getElementById('alertContainer');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        alertContainer.appendChild(alert);
+        setTimeout(() => alert.remove(), 5000);
+    }
 });

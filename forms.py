@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, DecimalField, DateField, TextAreaField, SelectField, HiddenField
+from wtforms import StringField, PasswordField, DecimalField, DateField, TextAreaField, SelectField, HiddenField, BooleanField
 from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional, ValidationError
 from wtforms.widgets import NumberInput
 from models import User
@@ -45,10 +45,6 @@ class RegisterForm(FlaskForm):
 
 class OrderForm(FlaskForm):
     id = HiddenField()
-    order_number = StringField('受注番号', validators=[
-        DataRequired(message='受注番号は必須です'),
-        Length(max=100, message='受注番号は100文字以下で入力してください')
-    ])
     customer_name = StringField('顧客名', validators=[
         DataRequired(message='顧客名は必須です'),
         Length(max=200, message='顧客名は200文字以下で入力してください')
@@ -57,23 +53,38 @@ class OrderForm(FlaskForm):
         DataRequired(message='プロジェクト名は必須です'),
         Length(max=200, message='プロジェクト名は200文字以下で入力してください')
     ])
+    sales_amount = DecimalField('売上金額', validators=[
+        DataRequired(message='売上金額は必須です'),
+        NumberRange(min=0, message='売上金額は0以上で入力してください')
+    ], widget=NumberInput(step='1'))
     order_amount = DecimalField('受注金額', validators=[
         DataRequired(message='受注金額は必須です'),
         NumberRange(min=0, message='受注金額は0以上で入力してください')
-    ], widget=NumberInput(step='0.01'))
+    ], widget=NumberInput(step='1'))
+    invoiced_amount = DecimalField('請求金額', validators=[
+        DataRequired(message='請求金額は必須です'),
+        NumberRange(min=0, message='請求金額は0以上で入力してください')
+    ], widget=NumberInput(step='1'))
     order_date = DateField('受注日', validators=[
         DataRequired(message='受注日は必須です')
     ])
-    delivery_date = DateField('納期', validators=[
+    contract_type = SelectField('契約形態', choices=[
+        ('準委任', '準委任'),
+        ('請負', '請負'),
+        ('派遣', '派遣'),
+        ('その他', 'その他')
+    ], validators=[Optional()])
+    sales_stage = SelectField('案件ステージ', choices=[
+        ('提案中', '提案中'),
+        ('受注済', '受注済'),
+        ('失注', '失注'),
+        ('完了', '完了')
+    ], validators=[Optional()])
+    billing_month = DateField('請求月', validators=[
         Optional()
     ])
-    status = SelectField('ステータス', choices=[
-        ('受注', '受注'),
-        ('進行中', '進行中'),
-        ('完了', '完了'),
-        ('キャンセル', 'キャンセル')
-    ], validators=[DataRequired(message='ステータスは必須です')])
-    remarks = TextAreaField('備考', validators=[
+    work_in_progress = BooleanField('進行中', default=False)
+    description = TextAreaField('詳細', validators=[
         Optional(),
-        Length(max=1000, message='備考は1000文字以下で入力してください')
+        Length(max=2000, message='詳細は2000文字以下で入力してください')
     ])

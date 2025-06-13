@@ -24,7 +24,7 @@
                     <span class="input-group-text">
                         <i class="fas fa-search"></i>
                     </span>
-                    <input type="text" class="form-control" id="searchInput" placeholder="受注番号、顧客名、プロジェクト名で検索">
+                    <input type="text" class="form-control" id="searchInput" placeholder="顧客名、プロジェクト名で検索">
                 </div>
             </div>
             <div class="col-md-6 mt-2 mt-md-0">
@@ -59,25 +59,8 @@
             <form id="orderForm">
                 {{ form.hidden_tag() }}
                 {{ form.id() }}
-                
+
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.order_number.label(class="form-label required") }}
-                                {{ form.order_number(class="form-control") }}
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.status.label(class="form-label required") }}
-                                {{ form.status(class="form-select") }}
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -94,8 +77,18 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                {{ form.sales_amount.label(class="form-label required") }}
+                                <div class="input-group">
+                                    <span class="input-group-text">¥</span>
+                                    {{ form.sales_amount(class="form-control") }}
+                                </div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
                         <div class="col-md-4">
                             <div class="mb-3">
                                 {{ form.order_amount.label(class="form-label required") }}
@@ -108,27 +101,63 @@
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
+                                {{ form.invoiced_amount.label(class="form-label required") }}
+                                <div class="input-group">
+                                    <span class="input-group-text">¥</span>
+                                    {{ form.invoiced_amount(class="form-control") }}
+                                </div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
                                 {{ form.order_date.label(class="form-label required") }}
                                 {{ form.order_date(class="form-control") }}
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
-                                {{ form.delivery_date.label(class="form-label") }}
-                                {{ form.delivery_date(class="form-control") }}
+                                {{ form.billing_month.label(class="form-label") }}
+                                {{ form.billing_month(class="form-control") }}
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
                     </div>
-                    
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.contract_type.label(class="form-label") }}
+                                {{ form.contract_type(class="form-select") }}
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.sales_stage.label(class="form-label") }}
+                                {{ form.sales_stage(class="form-select") }}
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        {{ form.work_in_progress(class="form-check-input") }}
+                        {{ form.work_in_progress.label(class="form-check-label") }}
+                        <div class="invalid-feedback"></div>
+                    </div>
+
                     <div class="mb-3">
-                        {{ form.remarks.label(class="form-label") }}
-                        {{ form.remarks(class="form-control", rows="3") }}
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="3") }}
                         <div class="invalid-feedback"></div>
                     </div>
                 </div>
-                
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
                     <button type="submit" class="btn btn-primary" id="orderSubmitBtn">

@@ -29,41 +29,35 @@ class OrderManager {
             tooltips: true, // ツールチップ表示
             placeholder: "データがありません", // データがない場合のメッセージ
             columns: [
-                { title: "受注番号", field: "order_number", sorter: "string" },
-                { title: "顧客名", field: "customer_name", sorter: "string" },
-                { title: "プロジェクト名", field: "project_name", sorter: "string" },
+                { title: "受注日", field: "order_date", hozAlign: "center", sorter: "date" },
                 {
                     title: "受注金額", field: "order_amount", hozAlign: "right", sorter: "number",
                     formatter: function (cell, formatterParams, onRendered) {
                         return '¥' + parseFloat(cell.getValue()).toLocaleString();
                     }
                 },
-                { title: "受注日", field: "order_date", hozAlign: "center", sorter: "date" },
-                { title: "納期", field: "delivery_date", hozAlign: "center", sorter: "date" },
                 {
-                    title: "ステータス", field: "status", hozAlign: "center",
+                    title: "請求金額", field: "invoiced_amount", hozAlign: "right", sorter: "number",
                     formatter: function (cell, formatterParams, onRendered) {
-                        const status = cell.getValue();
-                        let badgeClass = '';
-                        switch (status) {
-                            case '完了':
-                                badgeClass = 'bg-success';
-                                break;
-                            case '進行中':
-                                badgeClass = 'bg-primary';
-                                break;
-                            case '保留':
-                                badgeClass = 'bg-warning text-dark';
-                                break;
-                            case 'キャンセル':
-                                badgeClass = 'bg-danger';
-                                break;
-                            default:
-                                badgeClass = 'bg-secondary';
-                        }
-                        return `<span class="badge ${badgeClass}">${status}</span>`;
-                    },
+                        return '¥' + parseFloat(cell.getValue()).toLocaleString();
+                    }
                 },
+                {
+                    title: "売上金額", field: "sales_amount", hozAlign: "right", sorter: "number",
+                    formatter: function (cell, formatterParams, onRendered) {
+                        return '¥' + parseFloat(cell.getValue()).toLocaleString();
+                    }
+                },
+                { title: "顧客名", field: "customer_name", sorter: "string" },
+                { title: "案件名", field: "project_name", sorter: "string" },
+                { title: "契約形態", field: "contract_type", sorter: "string" },
+                { title: "確度", field: "sales_stage", sorter: "string" },
+                { title: "請求月", field: "billing_month", hozAlign: "center", sorter: "date" },
+                {
+                    title: "仕掛", field: "work_in_progress", hozAlign: "center", formatter: "tickCross",
+                    formatterParams: { allowEmpty: true, allowTruthy: true }
+                },
+                { title: "備考", field: "description", sorter: "string" },
                 {
                     title: "操作", field: "actions", hozAlign: "center", formatter: "html", width: 120, headerSort: false,
                     formatter: (cell, formatterParams, onRendered) => {
@@ -99,21 +93,17 @@ class OrderManager {
     initializeEventListeners() {
         // 検索機能 (Tabulatorのフィルターを使用)
         document.getElementById('searchInput').addEventListener('input', (e) => {
-            this.table.setFilter("order_number", "like", e.target.value);
-            // 顧客名とプロジェクト名も検索対象に含める場合（Tabulatorの複合フィルター）
-            // this.table.setFilter([
-            //     { field: "order_number", type: "like", value: e.target.value },
-            //     { field: "customer_name", type: "like", value: e.target.value },
-            //     { field: "project_name", type: "like", value: e.target.value },
-            // ]);
+            // 顧客名とプロジェクト名で検索
+            this.table.setFilter([
+                { field: "customer_name", type: "like", value: e.target.value },
+                { field: "project_name", type: "like", value: e.target.value },
+            ]);
         });
 
         // クリアボタン
         document.getElementById('clearSearchBtn').addEventListener('click', () => {
             document.getElementById('searchInput').value = '';
             this.table.clearFilter();
-            // HeaderFilterもクリアする場合
-            // this.table.clearHeaderFilter(); // 今回はheaderFilterを削除したので不要
         });
 
         // 更新ボタン
@@ -166,14 +156,17 @@ class OrderManager {
     
     populateForm(order) {
         document.getElementById('id').value = order.id;
-        document.getElementById('order_number').value = order.order_number;
         document.getElementById('customer_name').value = order.customer_name;
         document.getElementById('project_name').value = order.project_name;
+        document.getElementById('sales_amount').value = order.sales_amount;
         document.getElementById('order_amount').value = order.order_amount;
+        document.getElementById('invoiced_amount').value = order.invoiced_amount;
         document.getElementById('order_date').value = order.order_date;
-        document.getElementById('delivery_date').value = order.delivery_date || '';
-        document.getElementById('status').value = order.status;
-        document.getElementById('remarks').value = order.remarks || '';
+        document.getElementById('contract_type').value = order.contract_type || '';
+        document.getElementById('sales_stage').value = order.sales_stage || '';
+        document.getElementById('billing_month').value = order.billing_month || '';
+        document.getElementById('work_in_progress').checked = order.work_in_progress;
+        document.getElementById('description').value = order.description || '';
     }
     
     async saveOrder() {

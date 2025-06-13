@@ -93,14 +93,12 @@ def api_get_orders():
         search = request.args.get('search', '').strip()
         
         # Build query
-        query = Order.query.filter_by(user_id=current_user.id)
+        query = Order.query
         
         if search:
             search_filter = or_(
-                Order.order_number.contains(search),
                 Order.customer_name.contains(search),
-                Order.project_name.contains(search),
-                Order.status.contains(search)
+                Order.project_name.contains(search)
             )
             query = query.filter(search_filter)
         
@@ -131,31 +129,24 @@ def api_create_order():
     form = OrderForm()
     if form.validate_on_submit():
         try:
-            # Check if order number already exists for this user
-            existing_order = Order.query.filter_by(
-                user_id=current_user.id,
-                order_number=form.order_number.data
-            ).first()
-            
-            if existing_order:
-                return jsonify({'error': 'この受注番号は既に存在します'}), 400
-            
             order = Order(
-                user_id=current_user.id,
-                order_number=form.order_number.data,
                 customer_name=form.customer_name.data,
                 project_name=form.project_name.data,
+                sales_amount=form.sales_amount.data,
                 order_amount=form.order_amount.data,
+                invoiced_amount=form.invoiced_amount.data,
                 order_date=form.order_date.data,
-                delivery_date=form.delivery_date.data,
-                status=form.status.data,
-                remarks=form.remarks.data
+                contract_type=form.contract_type.data,
+                sales_stage=form.sales_stage.data,
+                billing_month=form.billing_month.data,
+                work_in_progress=form.work_in_progress.data,
+                description=form.description.data
             )
             
             db.session.add(order)
             db.session.commit()
             
-            logging.info(f"Order created: {order.order_number} by user {current_user.username}")
+            logging.info(f"Order created for project: {order.project_name}")
             return jsonify({'message': '受注が登録されました', 'order': order.to_dict()}), 201
         
         except Exception as e:
@@ -169,36 +160,27 @@ def api_create_order():
 @login_required
 @limiter.limit("30 per minute")
 def api_update_order(order_id):
-    order = Order.query.filter_by(id=order_id, user_id=current_user.id).first_or_404()
+    order = Order.query.get_or_404(order_id)
     
     form = OrderForm()
     if form.validate_on_submit():
         try:
-            # Check if order number already exists for this user (excluding current order)
-            existing_order = Order.query.filter(
-                and_(
-                    Order.user_id == current_user.id,
-                    Order.order_number == form.order_number.data,
-                    Order.id != order_id
-                )
-            ).first()
-            
-            if existing_order:
-                return jsonify({'error': 'この受注番号は既に存在します'}), 400
-            
             # Update order fields
-            order.order_number = form.order_number.data
             order.customer_name = form.customer_name.data
             order.project_name = form.project_name.data
+            order.sales_amount = form.sales_amount.data
             order.order_amount = form.order_amount.data
+            order.invoiced_amount = form.invoiced_amount.data
             order.order_date = form.order_date.data
-            order.delivery_date = form.delivery_date.data
-            order.status = form.status.data
-            order.remarks = form.remarks.data
+            order.contract_type = form.contract_type.data
+            order.sales_stage = form.sales_stage.data
+            order.billing_month = form.billing_month.data
+            order.work_in_progress = form.work_in_progress.data
+            order.description = form.description.data
             
             db.session.commit()
             
-            logging.info(f"Order updated: {order.order_number} by user {current_user.username}")
+            logging.info(f"Order updated: {order.project_name}")
             return jsonify({'message': '受注が更新されました', 'order': order.to_dict()})
         
         except Exception as e:
@@ -212,13 +194,13 @@ def api_update_order(order_id):
 @login_required
 @limiter.limit("20 per minute")
 def api_delete_order(order_id):
-    order = Order.query.filter_by(id=order_id, user_id=current_user.id).first_or_404()
+    order = Order.query.get_or_404(order_id)
     
     try:
         db.session.delete(order)
         db.session.commit()
         
-        logging.info(f"Order deleted: {order.order_number} by user {current_user.username}")
+        logging.info(f"Order deleted for project: {order.project_name}")
         return jsonify({'message': '受注が削除されました'})
     
     except Exception as e:
@@ -238,7 +220,6 @@ def api_get_projects():
     try:
         # プロジェクト名の一覧を取得（重複を除く）
         projects = db.session.query(distinct(Order.project_name))\
-            .filter_by(user_id=current_user.id)\
             .order_by(Order.project_name)\
             .all()
         
@@ -248,134 +229,44 @@ def api_get_projects():
     
     except Exception as e:
         logging.error(f"Error fetching projects: {e}")
-        return jsonify({'error': 'プロジェクト一覧の取得中にエラーが発生しました'}), 500
-
-@app.route('/api/orders/period', methods=['GET'])
-@login_required
-@limiter.limit("60 per minute")
-def api_get_orders_by_period():
-    try:
-        project_name = request.args.get('project')
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        
-        if not all([project_name, start_date, end_date]):
-            return jsonify({'error': 'プロジェクト名と期間を指定してください'}), 400
-        
-        # 日付文字列をdatetimeオブジェクトに変換
-        try:
-            # YYYY-MM形式をYYYY-MM-DD形式に変換
-            start_year, start_month = map(int, start_date.split('-'))
-            start_date_obj = date(start_year, start_month, 1)
-            
-            end_year, end_month = map(int, end_date.split('-'))
-            _, last_day = monthrange(end_year, end_month)
-            end_date_obj = date(end_year, end_month, last_day)
-        except ValueError:
-            return jsonify({'error': '無効な年月形式です'}), 400
-        
-        # 指定された期間とプロジェクトの受注を取得
-        query = Order.query.filter(
-            Order.user_id == current_user.id,
-            Order.order_date >= start_date_obj,
-            Order.order_date <= end_date_obj
-        )
-
-        if project_name != 'all':
-            query = query.filter(Order.project_name == project_name)
-
-        orders = query.all()
-        
-        # 総売上を計算
-        total_revenue = sum(order.order_amount for order in orders)
-        
-        return jsonify({
-            'orders': [order.to_dict() for order in orders],
-            'total_revenue': float(total_revenue),
-            'start_date': start_date_obj.strftime('%Y-%m'),
-            'end_date': end_date_obj.strftime('%Y-%m'),
-            'project_name': project_name
-        })
-    
-    except ValueError as e:
-        logging.error(f"Invalid date format or data for orders by period: {e}")
-        return jsonify({'error': '日付の形式が正しくありません'}), 400
-    except Exception as e:
-        logging.error(f"Error fetching orders by period: {e}")
-        return jsonify({'error': 'データの取得中にエラーが発生しました'}), 500
+        return jsonify({'error': 'プロジェクトの取得中にエラーが発生しました'}), 500
 
 @app.route('/api/profit-data', methods=['GET'])
 @login_required
 @limiter.limit("60 per minute")
 def api_get_profit_data():
+    project_name = request.args.get('project_name')
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+
+    if not all([project_name, start_date_str, end_date_str]):
+        return jsonify({'error': 'プロジェクト名、開始日、終了日は必須です'}), 400
+
     try:
-        project = request.args.get('project')
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        
-        # コストの取得とバリデーション
-        try:
-            employee_cost = int(request.args.get('employee_cost', 0))
-            bp_cost = int(request.args.get('bp_cost', 0))
-            if employee_cost < 0 or bp_cost < 0:
-                return jsonify({'error': 'コストは0以上の整数で入力してください'}), 400
-        except ValueError:
-            return jsonify({'error': 'コストは整数で入力してください'}), 400
-        
-        if not all([project, start_date, end_date]):
-            return jsonify({'error': 'プロジェクトと期間を指定してください'}), 400
-            
-        # 日付のバリデーションと変換
-        try:
-            # YYYY-MM形式をYYYY-MM-DD形式に変換
-            start_year, start_month = map(int, start_date.split('-'))
-            start_date_obj = date(start_year, start_month, 1)
-            
-            end_year, end_month = map(int, end_date.split('-'))
-            _, last_day = monthrange(end_year, end_month)
-            end_date_obj = date(end_year, end_month, last_day)
-        except ValueError:
-            return jsonify({'error': '無効な年月形式です'}), 400
-            
-        # 期間内の受注を取得
-        query = Order.query.filter(
-            Order.user_id == current_user.id,
-            Order.order_date >= start_date_obj,
-            Order.order_date <= end_date_obj
-        )
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
 
-        if project != 'all':
-            query = query.filter(Order.project_name == project)
+        # 指定されたプロジェクト、期間の受注データを取得
+        orders = Order.query.filter(
+            Order.project_name == project_name,
+            Order.order_date.between(start_date, end_date)
+        ).all()
 
-        orders = query.all()
-        
-        # 売上合計を計算
-        total_revenue = sum(order.order_amount for order in orders)
-        
-        # コストを加味した利益計算
-        total_cost = employee_cost + bp_cost
-        profit = total_revenue - total_cost
-        
-        # 利益率の計算（確実に数値型として計算）
-        profit_rate = float(0)
-        if total_revenue > 0:
-            profit_rate = float(profit) / float(total_revenue) * 100
-        
+        total_sales_amount = sum(float(order.sales_amount) for order in orders)
+        total_order_amount = sum(float(order.order_amount) for order in orders)
+        total_invoiced_amount = sum(float(order.invoiced_amount) for order in orders)
+
         return jsonify({
-            'project_name': project,
-            'start_date': start_date_obj.strftime('%Y-%m'),
-            'end_date': end_date_obj.strftime('%Y-%m'),
-            'total_revenue': float(total_revenue),
-            'total_cost': float(total_cost),
-            'profit': float(profit),
-            'profit_rate': float(profit_rate),
-            'employee_cost': float(employee_cost),
-            'bp_cost': float(bp_cost)
+            'total_sales_amount': total_sales_amount,
+            'total_order_amount': total_order_amount,
+            'total_invoiced_amount': total_invoiced_amount
         })
-    
+
+    except ValueError:
+        return jsonify({'error': '日付の形式が正しくありません。YYYY-MM-DD形式を使用してください。'}), 400
     except Exception as e:
-        logging.error(f"Error fetching profit data: {e}")
-        return jsonify({'error': '利益データの取得中にエラーが発生しました'}), 500
+        logging.error(f"Error calculating profit data: {e}")
+        return jsonify({'error': '利益データの計算中にエラーが発生しました'}), 500
 
 @app.errorhandler(404)
 def not_found_error(error):
