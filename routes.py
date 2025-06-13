@@ -246,11 +246,15 @@ def api_get_profit_data():
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
 
-        # 指定されたプロジェクト、期間の受注データを取得
-        orders = Order.query.filter(
-            Order.project_name == project_name,
-            Order.order_date.between(start_date, end_date)
-        ).all()
+        # クエリの構築
+        query = Order.query.filter(Order.order_date.between(start_date, end_date))
+        
+        # プロジェクト名が'all'でない場合は、特定のプロジェクトでフィルタリング
+        if project_name != 'all':
+            query = query.filter(Order.project_name == project_name)
+
+        # 受注データを取得
+        orders = query.all()
 
         total_sales_amount = sum(float(order.sales_amount) for order in orders)
         total_order_amount = sum(float(order.order_amount) for order in orders)

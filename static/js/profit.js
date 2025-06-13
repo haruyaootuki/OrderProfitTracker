@@ -269,13 +269,12 @@ class ProfitAnalyzer {
 document.addEventListener('DOMContentLoaded', () => {
     const analyzer = new ProfitAnalyzer(); // ProfitAnalyzerのインスタンスを一つだけ作成
 
-    // コスト入力フィールドのイベントリスナーを再設定 (変更)
+    // コスト入力フィールドのイベントリスナーを再設定
     const employeeCostInput = document.getElementById('employee_cost_input');
     const bpCostInput = document.getElementById('bp_cost_input');
 
     if (employeeCostInput) {
         employeeCostInput.addEventListener('input', () => {
-            // インスタンスを再利用してrenderProfitDataを呼び出す
             if (analyzer.currentData) {
                 analyzer.renderProfitData(analyzer.currentData);
             }
@@ -284,124 +283,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (bpCostInput) {
         bpCostInput.addEventListener('input', () => {
-            // インスタンスを再利用してrenderProfitDataを呼び出す
             if (analyzer.currentData) {
                 analyzer.renderProfitData(analyzer.currentData);
             }
         });
-    }
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    const analysisForm = document.getElementById('analysisForm');
-    const projectSelect = document.getElementById('projectSelect');
-    const startDateInput = document.getElementById('startDate');
-    const endDateInput = document.getElementById('endDate');
-    const employeeCostInput = document.getElementById('employee_cost_input');
-    const bpCostInput = document.getElementById('bp_cost_input');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const noProfitData = document.getElementById('noProfitData');
-    const profitDataDisplay = document.getElementById('profitDataDisplay');
-    const periodInfo = document.getElementById('periodInfo');
-    const totalSalesAmount = document.getElementById('totalSalesAmount');
-    const totalOrderAmount = document.getElementById('totalOrderAmount');
-    const totalInvoicedAmount = document.getElementById('totalInvoicedAmount');
-    const calculatedTotalCost = document.getElementById('calculatedTotalCost');
-    const calculatedProfit = document.getElementById('calculatedProfit');
-    const calculatedProfitRate = document.getElementById('calculatedProfitRate');
-
-    // プロジェクト一覧を取得
-    fetch('/api/projects')
-        .then(response => response.json())
-        .then(data => {
-            data.projects.forEach(project => {
-                const option = document.createElement('option');
-                option.value = project;
-                option.textContent = project;
-                projectSelect.appendChild(option);
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching projects:', error);
-            showAlert('プロジェクト一覧の取得に失敗しました', 'danger');
-        });
-
-    // フォーム送信時の処理
-    analysisForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const projectName = projectSelect.value;
-        const startDate = startDateInput.value;
-        const endDate = endDateInput.value;
-        const employeeCost = parseInt(employeeCostInput.value) || 0;
-        const bpCost = parseInt(bpCostInput.value) || 0;
-
-        if (!projectName || !startDate || !endDate) {
-            showAlert('プロジェクト、開始日、終了日をすべて入力してください', 'warning');
-            return;
-        }
-
-        // ローディング表示
-        loadingOverlay.classList.remove('d-none');
-        noProfitData.style.display = 'none';
-        profitDataDisplay.style.display = 'none';
-
-        // データを取得
-        fetch(`/api/profit-data?project_name=${encodeURIComponent(projectName)}&start_date=${startDate}&end_date=${endDate}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                // 期間情報を表示
-                periodInfo.textContent = `${projectName} (${startDate} 〜 ${endDate})`;
-
-                // 金額を表示
-                totalSalesAmount.textContent = formatCurrency(data.total_sales_amount);
-                totalOrderAmount.textContent = formatCurrency(data.total_order_amount);
-                totalInvoicedAmount.textContent = formatCurrency(data.total_invoiced_amount);
-
-                // コストと利益を計算
-                const totalCost = employeeCost + bpCost;
-                calculatedTotalCost.textContent = formatCurrency(totalCost);
-                
-                const profit = data.total_sales_amount - totalCost;
-                calculatedProfit.textContent = formatCurrency(profit);
-                
-                const profitRate = data.total_sales_amount > 0 
-                    ? (profit / data.total_sales_amount * 100).toFixed(1)
-                    : 0;
-                calculatedProfitRate.textContent = `${profitRate}%`;
-
-                // 結果を表示
-                profitDataDisplay.style.display = 'block';
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert(error.message || 'データの取得に失敗しました', 'danger');
-                noProfitData.style.display = 'block';
-            })
-            .finally(() => {
-                loadingOverlay.classList.add('d-none');
-            });
-    });
-
-    // 通貨フォーマット関数
-    function formatCurrency(amount) {
-        return '¥' + amount.toLocaleString();
-    }
-
-    // アラート表示関数
-    function showAlert(message, type) {
-        const alertContainer = document.getElementById('alertContainer');
-        const alert = document.createElement('div');
-        alert.className = `alert alert-${type} alert-dismissible fade show`;
-        alert.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        alertContainer.appendChild(alert);
-        setTimeout(() => alert.remove(), 5000);
     }
 });
