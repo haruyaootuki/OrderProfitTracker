@@ -30,7 +30,14 @@ class OrderManager {
             placeholder: "データがありません",
             footerElement: "<div class='tabulator-footer'></div>",
             columns: [
-                { title: "受注日", field: "order_date", hozAlign: "center", sorter: "date", width: 100, frozen: true },
+                { title: "受注日",field: "order_date", hozAlign: "center", sorter: "date", width: 100, frozen: true, sorter: "date",
+                    sorterParams: {
+                        format: "yyyy-MM-dd",
+                    },
+                    formatter: function (cell) {
+                        return luxon.DateTime.fromISO(cell.getValue()).toFormat("yyyy/MM/dd")
+                    }
+                },
                 {
                     title: "受注金額", field: "order_amount", hozAlign: "right", sorter: "number", width: 120, frozen: true,
                     formatter: function (cell, formatterParams, onRendered) {
@@ -77,7 +84,22 @@ class OrderManager {
                 { title: "案件名", field: "project_name", sorter: "string", width: 200 },
                 { title: "契約", field: "contract_type", sorter: "string", width: 70 },
                 { title: "確度", field: "sales_stage", sorter: "string", width: 70 },
-                { title: "請求日", field: "billing_month", hozAlign: "center", sorter: "date", width: 100 },
+                {
+                    title: "請求日",
+                    field: "billing_month",
+                    hozAlign: "center",
+                    sorter: "date",
+                    width: 100,
+                    sorterParams: {
+                        format: "yyyy-MM-dd",
+                        alignEmptyValues: "bottom"
+                    },
+                    formatter: function (cell) {
+                        const value = cell.getValue();
+                        if (!value) return '';
+                        return luxon.DateTime.fromISO(value).toFormat("yyyy/MM/dd");
+                    }
+                },
                 {
                     title: "仕掛", field: "work_in_progress", hozAlign: "center", formatter: "tickCross", width: 70,
                     formatterParams: { allowEmpty: true, allowTruthy: true }
