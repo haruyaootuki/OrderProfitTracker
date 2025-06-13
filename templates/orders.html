@@ -18,24 +18,83 @@
 <!-- Search and filters -->
 <div class="card mb-4">
     <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <div class="input-group">
-                    <span class="input-group-text">
-                        <i class="fas fa-search"></i>
-                    </span>
-                    <input type="text" class="form-control" id="searchInput" placeholder="顧客名、案件名で検索">
+        <form id="searchForm">
+            <div class="row g-3">
+                <!-- 受注日範囲 -->
+                <div class="col-md-6">
+                    <div class="row">
+                        <div class="col">
+                            <label for="orderDateFrom" class="form-label">受注日（開始）</label>
+                            <input type="date" class="form-control" id="orderDateFrom">
+                        </div>
+                        <div class="col">
+                            <label for="orderDateTo" class="form-label">受注日（終了）</label>
+                            <input type="date" class="form-control" id="orderDateTo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 顧客名 -->
+                <div class="col-md-3">
+                    <label for="searchCustomerName" class="form-label">顧客名</label>
+                    <input type="text" class="form-control" id="searchCustomerName" placeholder="顧客名で検索">
+                </div>
+
+                <!-- 案件名 -->
+                <div class="col-md-3">
+                    <label for="searchProjectName" class="form-label">案件名</label>
+                    <input type="text" class="form-control" id="searchProjectName" placeholder="案件名で検索">
+                </div>
+
+                <!-- 契約 -->
+                <div class="col-md-3">
+                    <label for="searchContractType" class="form-label">契約</label>
+                    <input type="text" class="form-control" id="searchContractType" placeholder="例：準委任、請負、派遣など">
+                </div>
+
+                <!-- 確度 -->
+                <div class="col-md-3">
+                    <label for="searchSalesStage" class="form-label">確度</label>
+                    <input type="text" class="form-control" id="searchSalesStage" placeholder="例：提案中、受注済、失注、完了など">
+                </div>
+
+                <!-- 請求日範囲 -->
+                <div class="col-md-4">
+                    <div class="row">
+                        <div class="col">
+                            <label for="billingDateFrom" class="form-label">請求日（開始）</label>
+                            <input type="date" class="form-control" id="billingDateFrom">
+                        </div>
+                        <div class="col">
+                            <label for="billingDateTo" class="form-label">請求日（終了）</label>
+                            <input type="date" class="form-control" id="billingDateTo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 仕掛 -->
+                <div class="col-md-2">
+                    <label for="searchWorkInProgress" class="form-label">仕掛</label>
+                    <select class="form-select" id="searchWorkInProgress">
+                        <option value="">すべて</option>
+                        <option value="true">あり</option>
+                        <option value="false">なし</option>
+                    </select>
+                </div>
+
+                <!-- 検索ボタン -->
+                <div class="col-md-12">
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" id="clearSearchBtn" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>検索条件クリア
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>検索
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6 mt-2 mt-md-0">
-                <button type="button" class="btn btn-outline-secondary" id="clearSearchBtn">
-                    <i class="fas fa-times me-1"></i>クリア
-                </button>
-                <button type="button" class="btn btn-outline-primary" id="refreshOrdersBtn">
-                    <i class="fas fa-sync-alt me-1"></i>更新
-                </button>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
 

@@ -138,24 +138,16 @@ class OrderManager {
     }
     
     initializeEventListeners() {
-        // 検索機能 (Tabulatorのフィルターを使用)
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            // 顧客名とプロジェクト名で検索
-            this.table.setFilter([
-                { field: "customer_name", type: "like", value: e.target.value },
-                { field: "project_name", type: "like", value: e.target.value },
-            ]);
+        // 検索フォームの送信イベント
+        document.getElementById('searchForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.performSearch();
         });
 
-        // クリアボタン
+        // 検索条件クリアボタン
         document.getElementById('clearSearchBtn').addEventListener('click', () => {
-            document.getElementById('searchInput').value = '';
+            document.getElementById('searchForm').reset();
             this.table.clearFilter();
-        });
-
-        // 更新ボタン
-        document.getElementById('refreshOrdersBtn').addEventListener('click', () => {
-            this.table.replaceData(); // 現在のフィルターとソートを維持してデータを再読み込み
         });
         
         // Modal events
@@ -458,6 +450,99 @@ class OrderManager {
         const div = document.createElement('div');
         div.appendChild(document.createTextNode(text));
         return div.innerHTML;
+    }
+
+    performSearch() {
+        const filters = [];
+        
+        // 受注日範囲検索
+        const orderDateFrom = document.getElementById('orderDateFrom').value;
+        const orderDateTo = document.getElementById('orderDateTo').value;
+        if (orderDateFrom) {
+            filters.push({
+                field: "order_date",
+                type: ">=",
+                value: orderDateFrom
+            });
+        }
+        if (orderDateTo) {
+            filters.push({
+                field: "order_date",
+                type: "<=",
+                value: orderDateTo
+            });
+        }
+
+        // 顧客名検索
+        const customerName = document.getElementById('searchCustomerName').value;
+        if (customerName) {
+            filters.push({
+                field: "customer_name",
+                type: "like",
+                value: customerName
+            });
+        }
+
+        // 案件名検索
+        const projectName = document.getElementById('searchProjectName').value;
+        if (projectName) {
+            filters.push({
+                field: "project_name",
+                type: "like",
+                value: projectName
+            });
+        }
+
+        // 契約検索
+        const contractType = document.getElementById('searchContractType').value;
+        if (contractType) {
+            filters.push({
+                field: "contract_type",
+                type: "like",
+                value: contractType
+            });
+        }
+
+        // 確度検索
+        const salesStage = document.getElementById('searchSalesStage').value;
+        if (salesStage) {
+            filters.push({
+                field: "sales_stage",
+                type: "like",
+                value: salesStage
+            });
+        }
+
+        // 請求日範囲検索
+        const billingDateFrom = document.getElementById('billingDateFrom').value;
+        const billingDateTo = document.getElementById('billingDateTo').value;
+        if (billingDateFrom) {
+            filters.push({
+                field: "billing_month",
+                type: ">=",
+                value: billingDateFrom
+            });
+        }
+        if (billingDateTo) {
+            filters.push({
+                field: "billing_month",
+                type: "<=",
+                value: billingDateTo
+            });
+        }
+
+        // 仕掛検索
+        const workInProgress = document.getElementById('searchWorkInProgress').value;
+        if (workInProgress !== '') {
+            filters.push({
+                field: "work_in_progress",
+                type: "=",
+                value: workInProgress === 'true'
+            });
+        }
+
+        // フィルターを適用
+        this.table.setFilter(filters);
     }
 }
 
