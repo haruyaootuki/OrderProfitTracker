@@ -212,6 +212,7 @@ def api_get_profit_data():
     end_date_str = request.args.get('end_date')
 
     if not all([project_name, start_date_str, end_date_str]):
+        flash('プロジェクト名、開始日、終了日は必須です', 'error')
         return jsonify({'error': 'プロジェクト名、開始日、終了日は必須です'}), 400
 
     try:
@@ -239,9 +240,11 @@ def api_get_profit_data():
         })
 
     except ValueError:
+        flash('日付の形式が正しくありません。YYYY-MM-DD形式を使用してください。', 'error')
         return jsonify({'error': '日付の形式が正しくありません。YYYY-MM-DD形式を使用してください。'}), 400
     except Exception as e:
         logging.error(f"Error calculating profit data: {e}")
+        flash('利益データの計算中にエラーが発生しました', 'error')
         return jsonify({'error': '利益データの計算中にエラーが発生しました'}), 500
 
 @app.route('/user/delete', methods=['POST'])

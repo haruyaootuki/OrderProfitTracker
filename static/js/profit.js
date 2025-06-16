@@ -225,28 +225,9 @@ class ProfitAnalyzer {
     }
     
     showError(message) {
-        try {
-            const alertContainer = document.getElementById('alertContainer');
-            if (!alertContainer) {
-                console.warn('Alert container not found');
-                return;
-            }
-            
-            const alert = document.createElement('div');
-            alert.className = 'alert alert-danger alert-dismissible fade show';
-            alert.innerHTML = `
-                ${this.escapeHtml(message)}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-            alertContainer.appendChild(alert);
-            
-            setTimeout(() => {
-                alert.classList.add('d-none');
-                alert.remove();
-            }, 5000);
-        } catch (error) {
-            console.error('Error displaying error alert:', error);
-        }
+        // エラーメッセージは既にサーバー側でフラッシュメッセージとして設定されているため、
+        // ここではページをリロードしてフラッシュメッセージを表示する
+        window.location.reload();
     }
     
     showAlert(message, type) {
