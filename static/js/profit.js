@@ -226,20 +226,10 @@ class ProfitAnalyzer {
         window.location.reload();
     }
     
-    formatCurrency(amount) {
-        return `¥${amount.toLocaleString()}`;
-    }
-    
     formatDate(dateStr) {
         // YYYY-MM-DD 形式の日付文字列を YYYY年M月D日 形式に変換
         const [year, month, day] = dateStr.split('-');
         return `${parseInt(year)}年${parseInt(month)}月${parseInt(day)}日`;
-    }
-    
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.appendChild(document.createTextNode(text));
-        return div.innerHTML;
     }
 }
 
