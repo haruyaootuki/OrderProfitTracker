@@ -439,18 +439,6 @@ class OrderManager {
     formatNumber(num) {
         return num.toLocaleString();
     }
-    
-    formatDate(dateString) {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ja-JP');
-    }
-    
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.appendChild(document.createTextNode(text));
-        return div.innerHTML;
-    }
 
     performSearch() {
         const filters = [];
