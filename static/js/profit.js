@@ -158,11 +158,11 @@ class ProfitAnalyzer {
         const profitDataDisplay = document.getElementById('profitDataDisplay');
         const noProfitData = document.getElementById('noProfitData');
 
-        if (data.total_sales_amount === 0 && data.total_order_amount === 0 && data.total_invoiced_amount === 0) {
-            profitDataDisplay.style.display = 'none';
-            noProfitData.style.display = 'block';
-            return;
-        }
+        // if (data.total_sales_amount === 0 && data.total_order_amount === 0 && data.total_invoiced_amount === 0) {
+        //     profitDataDisplay.style.display = 'none';
+        //     noProfitData.style.display = 'block';
+        //     return;
+        // }
 
         profitDataDisplay.style.display = 'block';
         noProfitData.style.display = 'none';
