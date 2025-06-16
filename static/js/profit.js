@@ -15,26 +15,54 @@ class ProfitAnalyzer {
             this.loadProfitData();
         });
 
-        // コスト入力の変更を監視 (変更)
+        // コスト入力のフォーマット処理を統一
+        const setupCostInput = (inputElement) => {
+            // 初期値を0に設定し、フォーマット
+            if (!inputElement.value) {
+                inputElement.value = '0';
+            } else {
+                inputElement.value = parseInt(inputElement.value.replace(/,/g, '')).toLocaleString('ja-JP');
+            }
+
+            // 入力時の処理
+            inputElement.addEventListener('input', (e) => {
+                // 数値とカンマ以外の文字を除去
+                let value = e.target.value.replace(/[^\d,]/g, '');
+                // カンマを一旦除去して数値に変換し、最大値を制限
+                let numValue = parseInt(value.replace(/,/g, '')) || 0;
+                if (numValue > 100000000000) { // 1000億に制限
+                    numValue = 100000000000;
+                }
+                // カンマ区切りを適用（入力途中でも適用）
+                e.target.value = numValue.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+
+                // 関連する表示データの更新（リアルタイム）
+                if (this.currentData) {
+                    this.renderProfitData(this.currentData);
+                }
+            });
+
+            // フォーカスを失った時のフォーマット
+            inputElement.addEventListener('blur', () => {
+                let numValue = parseInt(inputElement.value.replace(/,/g, '')) || 0;
+                inputElement.value = numValue.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+            });
+
+            // フォーカスを得た時の処理 (カンマを除去して編集しやすくする)
+            inputElement.addEventListener('focus', () => {
+                const value = inputElement.value.replace(/,/g, '');
+                inputElement.value = value === '0' ? '' : value;
+            });
+        };
+
         const employeeCostInput = document.getElementById('employee_cost_input');
         const bpCostInput = document.getElementById('bp_cost_input');
 
         if (employeeCostInput) {
-            employeeCostInput.addEventListener('input', (e) => {
-                e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                if (this.currentData) {
-                    this.renderProfitData(this.currentData);
-                }
-            });
+            setupCostInput(employeeCostInput);
         }
-
         if (bpCostInput) {
-            bpCostInput.addEventListener('input', (e) => {
-                e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                if (this.currentData) {
-                    this.renderProfitData(this.currentData);
-                }
-            });
+            setupCostInput(bpCostInput);
         }
     }
     
@@ -151,8 +179,8 @@ class ProfitAnalyzer {
         document.getElementById('totalInvoicedAmount').textContent = `¥${data.total_invoiced_amount.toLocaleString()}`;
 
         // 手動入力された社員コストとBPコストを取得し、計算
-        const employeeCost = parseInt(document.getElementById('employee_cost_input').value) || 0;
-        const bpCost = parseInt(document.getElementById('bp_cost_input').value) || 0;
+        const employeeCost = parseInt(document.getElementById('employee_cost_input').value.replace(/,/g, '')) || 0;
+        const bpCost = parseInt(document.getElementById('bp_cost_input').value.replace(/,/g, '')) || 0;
 
         const totalCost = employeeCost + bpCost;
         const profit = data.total_sales_amount - totalCost;
