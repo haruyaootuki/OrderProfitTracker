@@ -171,7 +171,7 @@ class ProfitAnalyzer {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
 
-        const projectNameDisplay = projectName === 'all' ? 'すべてのプロジェクト' : projectName;
+        const projectNameDisplay = projectName === 'all' ? 'すべての案件' : projectName;
         document.getElementById('periodInfo').textContent = `${projectNameDisplay} (${this.formatDate(startDate)} 〜 ${this.formatDate(endDate)})`;
 
         document.getElementById('totalSalesAmount').textContent = `¥${data.total_sales_amount.toLocaleString()}`;
