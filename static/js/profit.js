@@ -87,7 +87,6 @@ class ProfitAnalyzer {
                     'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
                 }
             });
-            
             if (!response.ok) {
                 throw new Error('プロジェクト一覧の取得に失敗しました');
             }
@@ -119,12 +118,6 @@ class ProfitAnalyzer {
             const project_name = document.getElementById('projectSelect').value;
             const start_date = document.getElementById('startDate').value;
             const end_date = document.getElementById('endDate').value;
-
-            if (!project_name || !start_date || !end_date) {
-                this.showError('プロジェクト名、開始日、終了日は必須です');
-                return;
-            }
-            // `employeeCost` と `bpCost` の取得とバリデーションを削除
 
             try {
                 this.showProfitLoading();
