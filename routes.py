@@ -211,10 +211,6 @@ def api_get_profit_data():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
 
-    if not all([project_name, start_date_str, end_date_str]):
-        flash('プロジェクト名、開始日、終了日は必須です', 'error')
-        return jsonify({'error': 'プロジェクト名、開始日、終了日は必須です'}), 400
-
     try:
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
