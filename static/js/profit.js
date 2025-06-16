@@ -220,34 +220,10 @@ class ProfitAnalyzer {
         }
     }
     
-    showSuccess(message) {
-        this.showAlert(message, 'success');
-    }
-    
     showError(message) {
         // エラーメッセージは既にサーバー側でフラッシュメッセージとして設定されているため、
         // ここではページをリロードしてフラッシュメッセージを表示する
         window.location.reload();
-    }
-    
-    showAlert(message, type) {
-        const alertContainer = document.getElementById('alertContainer');
-        if (!alertContainer) return;
-
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-        alertDiv.setAttribute('role', 'alert');
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        alertContainer.appendChild(alertDiv);
-
-        setTimeout(() => {
-            if (alertDiv && alertDiv.parentNode) {
-                alertDiv.parentNode.removeChild(alertDiv);
-            }
-        }, 5000);
     }
     
     formatCurrency(amount) {
