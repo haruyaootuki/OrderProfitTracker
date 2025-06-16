@@ -5,7 +5,7 @@ class ProfitAnalyzer {
         
         this.initializeEventListeners();
         this.loadProjects();
-        this.initializeDateInputs();
+        // this.initializeDateInputs();
     }
     
     initializeEventListeners() {
