@@ -14,35 +14,6 @@ class LoginForm(FlaskForm):
         DataRequired(message='パスワードは必須です')
     ])
 
-class RegisterForm(FlaskForm):
-    username = StringField('ユーザー名', validators=[
-        DataRequired(message='ユーザー名は必須です'),
-        Length(min=3, max=64, message='ユーザー名は3文字以上64文字以下で入力してください')
-    ])
-    email = StringField('メールアドレス', validators=[
-        DataRequired(message='メールアドレスは必須です'),
-        Email(message='正しいメールアドレスを入力してください'),
-        Length(max=120, message='メールアドレスは120文字以下で入力してください')
-    ])
-    password = PasswordField('パスワード', validators=[
-        DataRequired(message='パスワードは必須です'),
-        Length(min=8, message='パスワードは8文字以上で入力してください')
-    ])
-    
-    def validate_username(self, username):
-        # Check for valid characters (alphanumeric and underscore only)
-        if not re.match(r'^[a-zA-Z0-9_]+$', username.data):
-            raise ValidationError('ユーザー名は英数字とアンダースコアのみ使用できます')
-        
-        user = User.query.filter_by(username=username.data).first()
-        if user:
-            raise ValidationError('このユーザー名は既に使用されています')
-    
-    def validate_email(self, email):
-        user = User.query.filter_by(email=email.data).first()
-        if user:
-            raise ValidationError('このメールアドレスは既に使用されています')
-
 def validate_amount(form, field):
     if field.data:
         # 文字列の場合、カンマを除去して数値に変換

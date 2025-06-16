@@ -10,7 +10,7 @@ from functools import wraps
 
 from app import app, db, limiter
 from models import User, Order
-from forms import LoginForm, RegisterForm, OrderForm
+from forms import LoginForm, OrderForm
 
 @app.route('/')
 def index():
@@ -38,13 +38,6 @@ def login():
             logging.warning(f"Failed login attempt for username: {form.username.data}")
     
     return render_template('login.html', form=form)
-
-@app.route('/register', methods=['GET', 'POST'])
-@limiter.limit("3 per minute")
-def register():
-    # 一般ユーザーの登録を無効化
-    flash('現在、新規ユーザー登録は受け付けていません。管理者にお問い合わせください。', 'info')
-    return redirect(url_for('login'))
 
 @app.route('/logout')
 @login_required
