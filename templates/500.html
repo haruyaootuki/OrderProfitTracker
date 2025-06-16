@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 Internal Server Error</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container text-center">
+        <h1 class="mt-5">500 - サーバー内部エラー</h1>
+        <p>サーバーで予期せぬエラーが発生しました。</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">ホームに戻る</a>
+    </div>
+</body>
+</html> 
