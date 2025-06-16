@@ -66,19 +66,19 @@ class ProfitAnalyzer {
         }
     }
     
-    initializeDateInputs() {
-        // デフォルトで現在年月を設定 -> YYYY-MM-DD形式に変更
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    // initializeDateInputs() {
+    //     // デフォルトで現在年月を設定 -> YYYY-MM-DD形式に変更
+    //     const today = new Date();
+    //     const year = today.getFullYear();
+    //     const month = (today.getMonth() + 1).toString().padStart(2, '0');
 
-        // 月の最初の日と最後の日を計算
-        const firstDayOfMonth = new Date(year, today.getMonth(), 1);
-        const lastDayOfMonth = new Date(year, today.getMonth() + 1, 0);
+    //     // 月の最初の日と最後の日を計算
+    //     const firstDayOfMonth = new Date(year, today.getMonth(), 1);
+    //     const lastDayOfMonth = new Date(year, today.getMonth() + 1, 0);
 
-        document.getElementById('startDate').value = firstDayOfMonth.toISOString().split('T')[0];
-        document.getElementById('endDate').value = lastDayOfMonth.toISOString().split('T')[0];
-    }
+    //     document.getElementById('startDate').value = firstDayOfMonth.toISOString().split('T')[0];
+    //     document.getElementById('endDate').value = lastDayOfMonth.toISOString().split('T')[0];
+    // }
     
     async loadProjects() {
         try {
