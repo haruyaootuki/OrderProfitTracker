@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, current_app
+from flask import Flask, current_app, request, jsonify, flash, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
@@ -78,6 +78,15 @@ def create_app(test_config=None):
     login_manager.login_message = 'ログインが必要です。'
     login_manager.login_message_category = 'info'
     
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        # APIエンドポイントの場合、401 Unauthorizedを返す
+        if request.blueprint == 'main' and request.path.startswith('/api/'):
+            return jsonify({'error': '認証が必要です'}), 401
+        # それ以外の場合はログインページにリダイレクト
+        flash('ログインが必要です。アクセスするにはログインしてください。', 'info')
+        return redirect(url_for('main.login'))
+
     @login_manager.user_loader
     def load_user(user_id):
         # dbインスタンスはcurrent_app.extensions['sqlalchemy']から取得
