@@ -12,6 +12,9 @@ def app():
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"
     })
     
+    # 例外がエラーハンドラーに伝播するように設定
+    flask_app.config["PROPAGATE_EXCEPTIONS"] = False
+
     # Get the db instance that was initialized with the app
     test_db_instance = flask_app.extensions['sqlalchemy']
 
