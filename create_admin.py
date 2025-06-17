@@ -1,6 +1,10 @@
-from app import app, db
+from app import create_app
 from models import User
 import getpass
+from flask import current_app
+
+app = create_app()
+db = app.extensions['sqlalchemy']
 
 def create_admin_account():
     with app.app_context():
@@ -12,7 +16,7 @@ def create_admin_account():
             username = input("管理者ユーザー名を入力してください: ").strip()
             if username:
                 # 既存のユーザー名チェック
-                if User.query.filter_by(username=username).first():
+                if db.session.query(User).filter_by(username=username).first():
                     print("このユーザー名は既に使用されています。")
                     continue
                 break
@@ -22,7 +26,7 @@ def create_admin_account():
         while True:
             email = input("メールアドレスを入力してください: ").strip()
             if email:
-                if User.query.filter_by(email=email).first():
+                if db.session.query(User).filter_by(email=email).first():
                     print("このメールアドレスは既に使用されています。")
                     continue
                 break
