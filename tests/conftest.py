@@ -1,12 +1,16 @@
 import pytest
-from app import app as flask_app  # あなたのFlaskアプリケーションのインポートパスに合わせてください
+from app import app as flask_app, db # あなたのFlaskアプリケーションのインポートパスに合わせてください
 from flask_login import UserMixin
 
 @pytest.fixture
 def app():
     """Create and configure a new app instance for each test."""
     flask_app.config.update({"TESTING": True})
-    yield flask_app
+    
+    with flask_app.app_context():
+        db.create_all()
+        yield flask_app
+        db.drop_all()
 
 @pytest.fixture
 def client(app):
