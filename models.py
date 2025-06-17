@@ -1,19 +1,19 @@
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from app import db
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, Date
+from app import Base # Import Base directly
 
-class User(UserMixin, db.Model):
+class User(UserMixin, Base):
     __tablename__ = 'users'
     
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False, index=True)
-    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(256), nullable=False)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
-    is_admin = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    id = Column(Integer, primary_key=True)
+    username = Column(String(64), unique=True, nullable=False, index=True)
+    email = Column(String(120), unique=True, nullable=False, index=True)
+    password_hash = Column(String(256), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
     
     def set_password(self, password):
         """Hash and set user password"""
@@ -26,23 +26,23 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
-class Order(db.Model):
+class Order(Base):
     __tablename__ = 'orders'
     
-    id = db.Column(db.Integer, primary_key=True)
-    customer_name = db.Column(db.Text, nullable=False)
-    project_name = db.Column(db.Text, nullable=False)
-    sales_amount = db.Column(db.Numeric(10, 2), nullable=False, default=0)
-    order_amount = db.Column(db.Numeric(10, 2), nullable=False, default=0)
-    invoiced_amount = db.Column(db.Numeric(10, 2), nullable=False, default=0)
-    order_date = db.Column(db.Date, nullable=False)
-    contract_type = db.Column(db.String(16))
-    sales_stage = db.Column(db.String(16))
-    billing_month = db.Column(db.Date)
-    work_in_progress = db.Column(db.Boolean, default=False)
-    description = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id = Column(Integer, primary_key=True)
+    customer_name = Column(String(255), nullable=False)
+    project_name = Column(String(255), nullable=False)
+    sales_amount = Column(Numeric(10, 2), nullable=False, default=0)
+    order_amount = Column(Numeric(10, 2), nullable=False, default=0)
+    invoiced_amount = Column(Numeric(10, 2), nullable=False, default=0)
+    order_date = Column(Date, nullable=False)
+    contract_type = Column(String(16))
+    sales_stage = Column(String(16))
+    billing_month = Column(Date)
+    work_in_progress = Column(Boolean, default=False)
+    description = Column(String(255))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def __repr__(self):
         return f'<Order {self.project_name}>'

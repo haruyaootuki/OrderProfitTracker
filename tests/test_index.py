@@ -16,7 +16,7 @@ def test_unauthenticated_user_redirects_to_login(client):
     with client:
         logout_user()
         response = client.get('/')
-        assert response.headers['Location'] == url_for('login')
+        assert response.headers['Location'] == url_for('main.login')
         assert response.status_code == 302
 
 def test_redirect_called_with_correct_url_authenticated(client, test_user):
@@ -24,7 +24,7 @@ def test_redirect_called_with_correct_url_authenticated(client, test_user):
     with client:
         login_user(test_user)
         response = client.get('/')
-        assert response.headers['Location'] == url_for('orders')
+        assert response.headers['Location'] == url_for('main.orders')
         assert response.status_code == 302
 
 def test_redirect_called_with_correct_url_unauthenticated(client):
@@ -32,7 +32,7 @@ def test_redirect_called_with_correct_url_unauthenticated(client):
     with client:
         logout_user()
         response = client.get('/')
-        assert response.headers['Location'] == url_for('login')
+        assert response.headers['Location'] == url_for('main.login')
         assert response.status_code == 302
 
 def test_behavior_when_current_user_is_none(client, monkeypatch):
@@ -40,4 +40,4 @@ def test_behavior_when_current_user_is_none(client, monkeypatch):
     with client:
         response = client.get('/')
         assert response.status_code == 302
-        assert response.headers['Location'] == '/login'
+        assert response.headers['Location'] == url_for('main.login')

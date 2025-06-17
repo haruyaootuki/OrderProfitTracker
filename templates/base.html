@@ -22,7 +22,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
                 <i class="fas fa-chart-line me-2"></i>受注管理システム
             </a>
             
@@ -34,14 +34,14 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'orders' %}active{% endif %}" 
-                           href="{{ url_for('orders') }}">
+                        <a class="nav-link {% if request.endpoint == 'main.orders' %}active{% endif %}" 
+                           href="{{ url_for('main.orders') }}">
                             <i class="fas fa-list-alt me-1"></i>受注一覧
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'profit_analysis' %}active{% endif %}" 
-                           href="{{ url_for('profit_analysis') }}">
+                        <a class="nav-link {% if request.endpoint == 'main.profit_analysis' %}active{% endif %}" 
+                           href="{{ url_for('main.profit_analysis') }}">
                             <i class="fas fa-chart-pie me-1"></i>利益分析
                         </a>
                     </li>
@@ -55,7 +55,7 @@
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             {% if current_user.is_admin %}
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('admin_users') }}">
+                                <a class="dropdown-item" href="{{ url_for('main.admin_users') }}">
                                     <i class="fas fa-users-cog me-2"></i>ユーザー管理
                                 </a>
                             </li>
@@ -67,7 +67,7 @@
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <a class="dropdown-item" href="{{ url_for('main.logout') }}">
                                     <i class="fas fa-sign-out-alt me-2"></i>ログアウト
                                 </a>
                             </li>
@@ -121,7 +121,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                    <form action="{{ url_for('delete_user') }}" method="POST" class="d-inline">
+                    <form action="{{ url_for('main.delete_user') }}" method="POST" class="d-inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-danger">
                             <i class="fas fa-user-times me-2"></i>アカウントを削除
