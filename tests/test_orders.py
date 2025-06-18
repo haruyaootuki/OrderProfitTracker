@@ -2,41 +2,15 @@ import pytest
 from flask import url_for
 from flask_login import current_user
 from routes import main_bp
-from models import User
+# from models import User # authenticated_user fixture 削除に伴い不要
 from forms import OrderForm
-from bs4 import BeautifulSoup
+# from bs4 import BeautifulSoup # authenticated_user fixture 削除に伴い不要
 import routes # routesモジュールをインポート
 from flask import render_template as original_render_template # 元のrender_templateをインポート
 
 @pytest.fixture
 def client(app):
     return app.test_client()
-
-@pytest.fixture
-def authenticated_user(client, db_session):
-    user = User(username='testuser', email='testuser@example.com', is_active=True)
-    user.set_password('password')
-    db_session.add(user)
-    db_session.commit()
-
-    response = client.get(url_for('main.login'))
-    assert response.status_code == 200
-    soup = BeautifulSoup(response.data, 'html.parser')
-    csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
-
-    login_response = client.post(
-        url_for('main.login'),
-        data={
-            'username': user.username,
-            'password': 'password',
-            'csrf_token': csrf_token
-        },
-        follow_redirects=True
-    )
-    assert login_response.status_code == 200
-    assert 'ログインしました'.encode('utf-8') in login_response.data
-    
-    return user
 
 class TestOrdersPage:
 

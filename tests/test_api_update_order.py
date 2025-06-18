@@ -11,28 +11,6 @@ import routes
 def client(app):
     return app.test_client()
 
-@pytest.fixture
-def authenticated_user(client, db_session):
-    user = User(username='testuser', email='testuser@example.com', is_active=True)
-    user.set_password('password')
-    db_session.add(user)
-    db_session.commit()
-
-    response = client.get(url_for('main.login'))
-    soup = BeautifulSoup(response.data, 'html.parser')
-    csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
-
-    client.post(
-        url_for('main.login'),
-        data={
-            'username': user.username,
-            'password': 'password',
-            'csrf_token': csrf_token
-        },
-        follow_redirects=True
-    )
-    return user
-
 class TestApiUpdateOrder:
 
     def _get_csrf_token(self, client):

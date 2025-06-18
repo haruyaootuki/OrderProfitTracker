@@ -1,7 +1,8 @@
 import pytest
 from flask import url_for
-from models import Order, User
-from bs4 import BeautifulSoup
+from models import Order # Userはauthenticated_user fixture削除に伴い不要
+# from models import User # authenticated_user fixture 削除に伴い不要
+# from bs4 import BeautifulSoup # authenticated_user fixture 削除に伴い不要
 from routes import main_bp
 from datetime import date # datetime.dateをインポート
 import routes # routesモジュールをインポート
@@ -9,28 +10,6 @@ import routes # routesモジュールをインポート
 @pytest.fixture
 def client(app):
     return app.test_client()
-
-@pytest.fixture
-def authenticated_user(client, db_session):
-    user = User(username='testuser', email='testuser@example.com', is_active=True)
-    user.set_password('password')
-    db_session.add(user)
-    db_session.commit()
-
-    response = client.get(url_for('main.login'))
-    soup = BeautifulSoup(response.data, 'html.parser')
-    csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
-
-    client.post(
-        url_for('main.login'),
-        data={
-            'username': user.username,
-            'password': 'password',
-            'csrf_token': csrf_token
-        },
-        follow_redirects=True
-    )
-    return user
 
 class TestApiGetOrders:
 
