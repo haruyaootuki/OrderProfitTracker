@@ -3,6 +3,8 @@ from app import create_app
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy # This import is no longer needed here, but kept for clarity if Base is imported here
 from models import User # Userモデルをインポート
+from flask import url_for # url_forをインポート
+from bs4 import BeautifulSoup # BeautifulSoupをインポート
 
 @pytest.fixture
 def app():
@@ -52,11 +54,26 @@ def client(app):
     return app.test_client()
 
 @pytest.fixture
-def authenticated_user(app, db_session):
-    with app.app_context():
-        user = User(username='testuser', email='test@example.com', is_active=True)
-        user.set_password('password')
-        db_session.add(user)
-        db_session.commit()
-        # セッションにアタッチされた状態のユーザーを返す
-        return db_session.query(User).filter_by(username='testuser').first()
+def authenticated_user(app, client, db_session):
+    user = User(username='testuser', email='test@example.com', is_active=True)
+    user.set_password('password')
+    db_session.add(user)
+    db_session.commit()
+
+    # ログインページからCSRFトークンを取得
+    response = client.get(url_for('main.login'))
+    soup = BeautifulSoup(response.data, 'html.parser')
+    csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
+
+    # CSRFトークンを含めてログイン
+    client.post(
+        url_for('main.login'),
+        data={
+            'username': user.username,
+            'password': 'password',
+            'csrf_token': csrf_token
+        },
+        follow_redirects=True
+    )
+    # セッションにアタッチされた状態のユーザーを返す
+    return db_session.query(User).filter_by(username='testuser').first()
