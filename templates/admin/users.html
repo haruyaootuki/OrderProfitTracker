@@ -38,7 +38,7 @@
                             <td>
                                 <div class="btn-group">
                                     {% if user.id != current_user.id %}
-                                    <form action="{{ url_for('admin_toggle_admin', user_id=user.id) }}" method="POST" class="d-inline">
+                                    <form action="{{ url_for('main.admin_toggle_admin', user_id=user.id) }}" method="POST" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-outline-primary" 
                                                 onclick="return confirm('管理者権限を{{ '削除' if user.is_admin else '付与' }}しますか？')">
@@ -46,7 +46,7 @@
                                             {{ '管理者権限を削除' if user.is_admin else '管理者権限を付与' }}
                                         </button>
                                     </form>
-                                    <form action="{{ url_for('admin_delete_user', user_id=user.id) }}" method="POST" class="d-inline ms-2">
+                                    <form action="{{ url_for('main.admin_delete_user', user_id=user.id) }}" method="POST" class="d-inline ms-2">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-outline-danger" 
                                                 onclick="return confirm('このユーザーを削除しますか？この操作は取り消せません。')">
