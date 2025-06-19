@@ -21,12 +21,13 @@ class TestLogin:
         assert response.status_code == 200
         assert 'ログインしました' in response.data.decode('utf-8')
 
-    def test_authenticated_user_redirect(self, client, db_session):
+    def test_authenticated_user_redirect(self, client, db_session, app):
         user = User(username='authenticated_user', email='test@example.com', is_active=True)
         user.set_password('password')
         db_session.add(user)
         db_session.commit()
-        login_user(user)
+        with app.test_request_context():
+            login_user(user)
 
         response = client.get('/login', follow_redirects=True)
         assert response.status_code == 200
