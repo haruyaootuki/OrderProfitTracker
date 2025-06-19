@@ -122,7 +122,9 @@ def create_app(test_config=None):
     
     return app, db_instance # アプリとdbインスタンスを返す
 
+# アプリケーションが直接実行された場合にのみインスタンスを作成
+if __name__ == '__main__':
+    app, db = create_app()
+
 # 循環インポートを防ぐため、アプリが作成された後にルートをインポート
 # import routes # noqa: F401
-
-app, db = create_app()
