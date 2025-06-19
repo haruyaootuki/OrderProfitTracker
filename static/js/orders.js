@@ -30,7 +30,7 @@ class OrderManager {
             placeholder: "データがありません",
             footerElement: "<div class='tabulator-footer'></div>",
             columns: [
-                { title: "受注日",field: "order_date", hozAlign: "center", sorter: "date", width: 100, frozen: true, sorter: "date",
+                { title: "受注日",field: "order_date", hozAlign: "center", width: 100, frozen: true, sorter: "date",
                     sorterParams: {
                         format: "yyyy-MM-dd",
                     },
@@ -106,7 +106,7 @@ class OrderManager {
                 },
                 { title: "備考", field: "description", sorter: "string", width: 250 },
                 {
-                    title: "操作", field: "actions", hozAlign: "center", formatter: "html", width: 120, headerSort: false,
+                    title: "操作", field: "actions", hozAlign: "center", width: 120, headerSort: false,
                     formatter: (cell, formatterParams, onRendered) => {
                         const orderId = cell.getRow().getData().id;
                         return `
