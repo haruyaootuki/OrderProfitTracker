@@ -63,7 +63,9 @@ def create_app(test_config=None):
             app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
             
             # デバッグ情報を出力（パスワードは除く）
-            print(f"DEBUG: Connecting to MySQL - Host: {MYSQL_HOST}:{MYSQL_PORT}, Database: {MYSQL_DATABASE}, User: {MYSQL_USER}")
+            print("DEBUG: Database configuration in app.py:")
+            print(f"Connection string (without password): mysql+pymysql://{MYSQL_USER}:****@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}")
+            print(f"SSL verification: {app.config['SQLALCHEMY_ENGINE_OPTIONS']['connect_args']['ssl']}")
         else:
             missing_vars = [var for var, value in {
                 'MYSQL_USER': MYSQL_USER,
