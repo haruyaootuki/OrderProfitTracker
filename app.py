@@ -24,8 +24,7 @@ class Base(DeclarativeBase):
 login_manager = LoginManager()
 csrf = CSRFProtect()
 limiter = Limiter(
-    key_func=get_remote_address,
-    # default_limits=["200 per day", "50 per hour"]
+    key_func=get_remote_address
 )
 
 def create_app(test_config=None):

@@ -165,10 +165,6 @@ class OrderManager {
     
     initializeFormHandlers() {
         const form = document.getElementById('orderForm');
-        const modal = document.getElementById('orderModal');
-        const modalTitle = document.getElementById('orderModalTitle');
-        const submitBtn = document.getElementById('orderSubmitBtn');
-        const deleteBtn = document.getElementById('confirmDeleteBtn');
 
         // 数値入力フィールドのフォーマット処理
         const formatNumberInput = (input) => {
@@ -391,7 +387,7 @@ class OrderManager {
             if (input) {
                 input.classList.add('is-invalid');
                 const feedback = input.nextElementSibling; // Assuming invalid-feedback is next sibling
-                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                if (feedback?.classList.contains('invalid-feedback')) {
                     feedback.textContent = errors[fieldName][0];
                 }
             }
