@@ -61,21 +61,7 @@ class ProfitAnalyzer {
             setupCostInput(bpCostInput);
         }
     }
-    
-    // initializeDateInputs() {
-    //     // デフォルトで現在年月を設定 -> YYYY-MM-DD形式に変更
-    //     const today = new Date();
-    //     const year = today.getFullYear();
-    //     const month = (today.getMonth() + 1).toString().padStart(2, '0');
 
-    //     // 月の最初の日と最後の日を計算
-    //     const firstDayOfMonth = new Date(year, today.getMonth(), 1);
-    //     const lastDayOfMonth = new Date(year, today.getMonth() + 1, 0);
-
-    //     document.getElementById('startDate').value = firstDayOfMonth.toISOString().split('T')[0];
-    //     document.getElementById('endDate').value = lastDayOfMonth.toISOString().split('T')[0];
-    // }
-    
     async loadProjects() {
         try {
             const response = await fetch('/api/projects', {
@@ -146,12 +132,6 @@ class ProfitAnalyzer {
     renderProfitData(data) {
         const profitDataDisplay = document.getElementById('profitDataDisplay');
         const noProfitData = document.getElementById('noProfitData');
-
-        // if (data.total_sales_amount === 0 && data.total_order_amount === 0 && data.total_invoiced_amount === 0) {
-        //     profitDataDisplay.style.display = 'none';
-        //     noProfitData.style.display = 'block';
-        //     return;
-        // }
 
         profitDataDisplay.style.display = 'block';
         noProfitData.style.display = 'none';
@@ -231,7 +211,6 @@ class ProfitAnalyzer {
     async init() {
         this.initializeEventListeners();
         await this.loadProjects();
-        // this.initializeDateInputs();
     }
 }
 

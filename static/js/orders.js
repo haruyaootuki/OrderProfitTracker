@@ -426,7 +426,7 @@ class OrderManager {
         alertContainer.appendChild(alertDiv);
 
         setTimeout(() => {
-            if (alertDiv && alertDiv.parentNode) {
+            if (alertDiv?.parentNode) {
                 alertDiv.parentNode.removeChild(alertDiv);
             }
         }, 5000);
@@ -533,8 +533,5 @@ class OrderManager {
 // Initialize the OrderManager when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.orderManager = new OrderManager();
-    // グローバル関数は不要になるので削除
-    // function clearSearch() { orderManager.clearSearch(); }
-    // function refreshOrders() { orderManager.refreshOrders(); }
 });
 
