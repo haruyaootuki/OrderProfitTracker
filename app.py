@@ -55,7 +55,7 @@ def create_app(test_config=None):
         MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
         MYSQL_HOST = os.environ.get("MYSQL_HOST")
         MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
-        MYSQL_PORT = "4000"  # デフォルトポートを4000に設定
+        MYSQL_PORT = os.environ.get("MYSQL_PORT", "4000")  # デフォルトポートを4000に設定
 
         if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
             # TiDB Cloud用の接続文字列を構築（ポート番号を追加）
