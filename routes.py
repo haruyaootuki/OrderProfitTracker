@@ -15,8 +15,13 @@ from forms import LoginForm, OrderForm, UserForm
 
 main_bp = Blueprint('main', __name__)
 
+# 定数を定義
+ADMIN_USERS_ROUTE = 'main.admin_users'
+
 @main_bp.route('/')
 def index():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.orders'))
     return redirect(url_for('main.login'))
 
 @main_bp.route('/login', methods=['GET', 'POST'])
@@ -322,7 +327,7 @@ def admin_create_user():
             db.session.add(new_user)
             db.session.commit()
             flash('ユーザーが正常に作成されました。', 'success')
-            return redirect(url_for('main.admin_users'))
+            return redirect(url_for(ADMIN_USERS_ROUTE))
     return render_template('admin/create_user.html', form=form)
 
 @main_bp.route('/admin/users/<int:user_id>/delete', methods=['POST'])
@@ -339,7 +344,7 @@ def admin_delete_user(user_id):
         db.session.rollback()
         flash(f'ユーザー削除中にエラーが発生しました: {e}', 'error')
         logging.error(f"Error deleting user {user_id}: {e}")
-    return redirect(url_for('main.admin_users'))
+    return redirect(url_for(ADMIN_USERS_ROUTE))
 
 @main_bp.route('/admin/users/<int:user_id>/toggle-admin', methods=['POST'])
 @login_required
@@ -355,4 +360,4 @@ def admin_toggle_admin(user_id):
         db.session.rollback()
         flash(f'管理者権限のトグル中にエラーが発生しました: {e}', 'error')
         logging.error(f"Error toggling admin status for user {user_id}: {e}")
-    return redirect(url_for('main.admin_users'))
+    return redirect(url_for(ADMIN_USERS_ROUTE))

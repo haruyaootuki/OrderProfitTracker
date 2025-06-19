@@ -2,10 +2,6 @@
 class ProfitAnalyzer {
     constructor() {
         this.currentData = null;
-        
-        this.initializeEventListeners();
-        this.loadProjects();
-        // this.initializeDateInputs();
     }
     
     initializeEventListeners() {
@@ -231,11 +227,18 @@ class ProfitAnalyzer {
         const [year, month, day] = dateStr.split('-');
         return `${parseInt(year)}年${parseInt(month)}月${parseInt(day)}日`;
     }
+    
+    async init() {
+        this.initializeEventListeners();
+        await this.loadProjects();
+        // this.initializeDateInputs();
+    }
 }
 
 // Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const analyzer = new ProfitAnalyzer(); // ProfitAnalyzerのインスタンスを一つだけ作成
+    await analyzer.init(); // 非同期初期化メソッドを呼び出す
 
     // コスト入力フィールドのイベントリスナーを再設定
     const employeeCostInput = document.getElementById('employee_cost_input');
