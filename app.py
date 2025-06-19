@@ -48,6 +48,10 @@ def create_app(test_config=None):
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     else:
         app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+    
+    # デバッグ用: DATABASE_URLの値をログに出力
+    print(f"DEBUG: DATABASE_URL from os.environ: {os.environ.get('DATABASE_URL')}")
+    print(f"DEBUG: SQLALCHEMY_DATABASE_URI in app.config: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
 
     # Create db instance for THIS app instance AFTER config is set
     db_instance = SQLAlchemy(model_class=Base)
