@@ -21,3 +21,8 @@ dependencies = [
     "PyMySQL>=1.1.0",
     "python-dotenv>=1.0.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
