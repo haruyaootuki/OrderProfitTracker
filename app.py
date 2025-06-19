@@ -51,21 +51,16 @@ def create_app(test_config=None):
     if app.config["TESTING"]:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     else:
-        db_url = os.environ.get("DATABASE_URL")
-        if db_url:
-            app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+        MYSQL_USER = os.environ.get("MYSQL_USER")
+        MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
+        MYSQL_HOST = os.environ.get("MYSQL_HOST")
+        MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
+        
+        if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
+            MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DATABASE}"
+            app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
         else:
-            # Fallback to individual MySQL env vars for local/non-DATABASE_URL environments
-            MYSQL_USER = os.environ.get("MYSQL_USER")
-            MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
-            MYSQL_HOST = os.environ.get("MYSQL_HOST")
-            MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
-            if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
-                MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DATABASE}"
-                app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
-            else:
-                app.config["SQLALCHEMY_DATABASE_URI"] = None
-                print("DEBUG: No DATABASE_URL or MySQL environment variables found. SQLALCHEMY_DATABASE_URI is None.")
+            raise ValueError("Required MySQL environment variables are not set")
 
     # このアプリインスタンス用のdbインスタンスを、設定が完了した後に作成
     db.init_app(app)
