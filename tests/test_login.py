@@ -1,5 +1,4 @@
 import pytest
-from flask import url_for
 from models import User
 from flask_login import login_user
 from bs4 import BeautifulSoup
@@ -13,12 +12,12 @@ class TestLogin:
         db_session.commit()
 
         # Get CSRF token
-        response = client.get(url_for('main.login'))
+        response = client.get('/login')
         assert response.status_code == 200
         soup = BeautifulSoup(response.data, 'html.parser')
         csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
 
-        response = client.post(url_for('main.login'), data={'username': 'valid_user', 'password': 'correct_password', 'csrf_token': csrf_token}, follow_redirects=True)
+        response = client.post('/login', data={'username': 'valid_user', 'password': 'correct_password', 'csrf_token': csrf_token}, follow_redirects=True)
         assert response.status_code == 200
         assert 'ログインしました' in response.data.decode('utf-8')
 
@@ -29,12 +28,12 @@ class TestLogin:
         db_session.commit()
         login_user(user)
 
-        response = client.get(url_for('main.login'), follow_redirects=True)
+        response = client.get('/login', follow_redirects=True)
         assert response.status_code == 200
         assert b'orders' in response.data
 
     def test_render_login_form_for_unauthenticated_user(self, client):
-        response = client.get(url_for('main.login'))
+        response = client.get('/login')
         assert response.status_code == 200
         assert 'ログイン'.encode('utf-8') in response.data
 
@@ -45,12 +44,12 @@ class TestLogin:
         db_session.commit()
 
         # Get CSRF token
-        response = client.get(url_for('main.login'))
+        response = client.get('/login')
         assert response.status_code == 200
         soup = BeautifulSoup(response.data, 'html.parser')
         csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
 
-        response = client.post(url_for('main.login'), data={'username': 'user', 'password': 'wrong_password', 'csrf_token': csrf_token}, follow_redirects=True)
+        response = client.post('/login', data={'username': 'user', 'password': 'wrong_password', 'csrf_token': csrf_token}, follow_redirects=True)
         assert response.status_code == 200
         assert 'ユーザー名またはパスワードが正しくありません'.encode('utf-8') in response.data
 
@@ -61,12 +60,12 @@ class TestLogin:
         db_session.commit()
 
         # Get CSRF token
-        response = client.get(url_for('main.login'))
+        response = client.get('/login')
         assert response.status_code == 200
         soup = BeautifulSoup(response.data, 'html.parser')
         csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
 
-        response = client.post(url_for('main.login'), data={'username': 'inactive_user', 'password': 'correct_password', 'csrf_token': csrf_token}, follow_redirects=True)
+        response = client.post('/login', data={'username': 'inactive_user', 'password': 'correct_password', 'csrf_token': csrf_token}, follow_redirects=True)
         assert response.status_code == 200
         assert 'ユーザー名またはパスワードが正しくありません'.encode('utf-8') in response.data
 
@@ -77,13 +76,13 @@ class TestLogin:
         db_session.commit()
 
         # Get CSRF token once for all requests
-        response = client.get(url_for('main.login'))
+        response = client.get('/login')
         assert response.status_code == 200
         soup = BeautifulSoup(response.data, 'html.parser')
         csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
 
         for _ in range(6):
-            response = client.post(url_for('main.login'), data={'username': 'rate_limit_user', 'password': 'wrong_password', 'csrf_token': csrf_token}, follow_redirects=True)
+            response = client.post('/login', data={'username': 'rate_limit_user', 'password': 'wrong_password', 'csrf_token': csrf_token}, follow_redirects=True)
 
         assert response.status_code == 429
         assert b'Too Many Requests' in response.data

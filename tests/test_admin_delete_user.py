@@ -1,5 +1,4 @@
 import pytest
-from flask import url_for
 from models import User
 from flask_login import current_user
 from bs4 import BeautifulSoup
@@ -17,13 +16,13 @@ def admin_user(app, client, db_session):
     db_session.commit()
 
     # ログインページからCSRFトークンを取得
-    response = client.get(url_for('main.login'))
+    response = client.get('/login')
     soup = BeautifulSoup(response.data, 'html.parser')
     csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
 
     # CSRFトークンを使ってログイン
     client.post(
-        url_for('main.login'),
+        '/login',
         data={
             'username': user.username,
             'password': 'password',
@@ -38,7 +37,7 @@ def admin_user(app, client, db_session):
 class TestAdminDeleteUser:
     def _get_csrf_token(self, client):
         """Helper to get CSRF token from the create user page."""
-        response = client.get(url_for('main.admin_create_user'))
+        response = client.get('/admin/users/create')
         soup = BeautifulSoup(response.data, 'html.parser')
         csrf_token = soup.find('input', {'name': 'csrf_token'})
         if csrf_token:
@@ -54,7 +53,7 @@ class TestAdminDeleteUser:
         csrf_token = self._get_csrf_token(client)
         assert csrf_token is not None
         response = client.post(
-            url_for('main.admin_delete_user', user_id=user.id),
+            f'/admin/users/{user.id}/delete',
             headers={'X-CSRFToken': csrf_token}
         )
         assert response.status_code == 302
@@ -69,7 +68,7 @@ class TestAdminDeleteUser:
         csrf_token = self._get_csrf_token(client)
         assert csrf_token is not None
         response = client.post(
-            url_for('main.admin_delete_user', user_id=user.id),
+            f'/admin/users/{user.id}/delete',
             headers={'X-CSRFToken': csrf_token},
             follow_redirects=True
         )
@@ -84,17 +83,17 @@ class TestAdminDeleteUser:
         csrf_token = self._get_csrf_token(client)
         assert csrf_token is not None
         response = client.post(
-            url_for('main.admin_delete_user', user_id=user.id),
+            f'/admin/users/{user.id}/delete',
             headers={'X-CSRFToken': csrf_token}
         )
         assert response.status_code == 302
-        assert response.location.endswith(url_for('main.admin_users'))
+        assert response.location.endswith('/admin/users')
 
     def test_admin_deletes_non_existent_user(self, client, admin_user):
         csrf_token = self._get_csrf_token(client)
         assert csrf_token is not None
         response = client.post(
-            url_for('main.admin_delete_user', user_id=9999),
+            '/admin/users/9999/delete',
             headers={'X-CSRFToken': csrf_token}
         )
         assert response.status_code == 404
@@ -113,7 +112,7 @@ class TestAdminDeleteUser:
         csrf_token = self._get_csrf_token(client)
         assert csrf_token is not None
         response = client.post(
-            url_for('main.admin_delete_user', user_id=user.id),
+            f'/admin/users/{user.id}/delete',
             headers={'X-CSRFToken': csrf_token},
             follow_redirects=True
         )
@@ -123,8 +122,8 @@ class TestAdminDeleteUser:
         monkeypatch.setitem(app.config, 'WTF_CSRF_ENABLED', False)
         # 非管理者が削除を試みる
         response = client.post(
-            url_for('main.admin_delete_user', user_id=1)
+            '/admin/users/1/delete'
         )
 
         assert response.status_code ==302
-        assert response.headers['Location'] == url_for('main.index')
+        assert response.headers['Location'] == '/'

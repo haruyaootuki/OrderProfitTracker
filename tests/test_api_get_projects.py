@@ -1,5 +1,4 @@
 import pytest
-from flask import url_for
 from models import Order
 from routes import main_bp
 from datetime import date
@@ -17,7 +16,7 @@ class TestApiGetProjects:
         db_session.add_all([order1, order2])
         db_session.commit()
 
-        response = client.get(url_for('main.api_get_projects'))
+        response = client.get('/api/projects')
         assert response.status_code == 200
         data = response.get_json()
         assert 'projects' in data
@@ -25,14 +24,14 @@ class TestApiGetProjects:
 
     def test_api_get_projects_rate_limit(self, client, authenticated_user):
         for _ in range(60):
-            response = client.get(url_for('main.api_get_projects'))
+            response = client.get('/api/projects')
             assert response.status_code == 200
 
-        response = client.get(url_for('main.api_get_projects'))
+        response = client.get('/api/projects')
         assert response.status_code == 429
 
     def test_api_get_projects_authentication_required(self, client):
-        response = client.get(url_for('main.api_get_projects'))
+        response = client.get('/api/projects')
         assert response.status_code == 401  # APIエンドポイントなので401を期待
 
     def test_api_get_projects_db_connection_failure(self, client, authenticated_user, monkeypatch, app):
@@ -41,13 +40,13 @@ class TestApiGetProjects:
 
         monkeypatch.setattr(app.extensions['sqlalchemy'].session, 'query', mock_query_method)
 
-        response = client.get(url_for('main.api_get_projects'))
+        response = client.get('/api/projects')
         assert response.status_code == 500
         data = response.get_json()
         assert 'error' in data
 
     def test_api_get_projects_empty_list(self, client, authenticated_user):
-        response = client.get(url_for('main.api_get_projects'))
+        response = client.get('/api/projects')
         assert response.status_code == 200
         data = response.get_json()
         assert data['projects'] == []
@@ -58,7 +57,7 @@ class TestApiGetProjects:
 
         monkeypatch.setattr(app.extensions['sqlalchemy'].session, 'query', mock_query_method)
 
-        response = client.get(url_for('main.api_get_projects'))
+        response = client.get('/api/projects')
         assert response.status_code == 500
         data = response.get_json()
         assert 'error' in data

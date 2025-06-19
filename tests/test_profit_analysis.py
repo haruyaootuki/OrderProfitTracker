@@ -1,5 +1,4 @@
 import pytest
-from flask import url_for
 from flask_login import current_user
 from routes import main_bp
 from models import User
@@ -11,17 +10,17 @@ def client(app):
 class TestProfitAnalysisPage:
 
     def test_render_profit_analysis_authenticated(self, client, authenticated_user):
-        response = client.get(url_for('main.profit_analysis'))
+        response = client.get('/profit-analysis')
         assert response.status_code == 200
         assert '利益分析'.encode('utf-8') in response.data
 
     def test_redirect_unauthenticated_to_login(self, client):
-        response = client.get(url_for('main.profit_analysis'))
+        response = client.get('/profit-analysis')
         assert response.status_code == 302
-        assert url_for('main.login') in response.headers['Location']
+        assert '/login' in response.headers['Location']
 
     def test_display_profit_analysis_template(self, client, authenticated_user):
-        response = client.get(url_for('main.profit_analysis'))
+        response = client.get('/profit-analysis')
         assert response.status_code == 200
         assert '利益分析'.encode('utf-8') in response.data
 
@@ -35,7 +34,7 @@ class TestProfitAnalysisPage:
 
         monkeypatch.setattr(app.jinja_env, 'get_template', mock_render_template)
 
-        response = client.get(url_for('main.profit_analysis'))
+        response = client.get('/profit-analysis')
         assert response.status_code == 500
 
     def test_access_with_invalid_session(self, client, db_session):
@@ -44,11 +43,11 @@ class TestProfitAnalysisPage:
         db_session.add(user)
         db_session.commit()
 
-        response = client.get(url_for('main.profit_analysis'))
+        response = client.get('/profit-analysis')
         assert response.status_code == 302
-        assert url_for('main.login') in response.headers['Location']
+        assert '/login' in response.headers['Location']
 
     def test_login_required_decorator(self, client):
-        response = client.get(url_for('main.profit_analysis'))
+        response = client.get('/profit-analysis')
         assert response.status_code == 302
-        assert url_for('main.login') in response.headers['Location']
+        assert '/login' in response.headers['Location']

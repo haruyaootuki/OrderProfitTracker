@@ -1,8 +1,5 @@
 import pytest
-from flask import url_for
-from models import Order # Userはauthenticated_user fixture削除に伴い不要
-# from models import User # authenticated_user fixture 削除に伴い不要
-# from bs4 import BeautifulSoup # authenticated_user fixture 削除に伴い不要
+from models import Order 
 from routes import main_bp
 from datetime import date # datetime.dateをインポート
 import routes # routesモジュールをインポート
@@ -14,7 +11,7 @@ def client(app):
 class TestApiGetOrders:
 
     def test_api_get_orders_default_pagination(self, client, authenticated_user):
-        response = client.get(url_for('main.api_get_orders'))
+        response = client.get('/api/orders')
         assert response.status_code == 200
         data = response.get_json()
         assert 'orders' in data
@@ -27,28 +24,28 @@ class TestApiGetOrders:
         db_session.add(order)
         db_session.commit()
 
-        response = client.get(url_for('main.api_get_orders', search='Test'))
+        response = client.get('/api/orders?search=Test')
         assert response.status_code == 200
         data = response.get_json()
         assert len(data['orders']) > 0
         assert any('Test Customer' in order['customer_name'] for order in data['orders'])
 
     def test_api_get_orders_with_pagination_params(self, client, authenticated_user):
-        response = client.get(url_for('main.api_get_orders', page=2, per_page=10))
+        response = client.get('/api/orders?page=2&per_page=10')
         assert response.status_code == 200
         data = response.get_json()
         assert data['page'] == 2
         assert data['per_page'] == 10
 
     def test_api_get_orders_invalid_pagination_params(self, client, authenticated_user):
-        response = client.get(url_for('main.api_get_orders', page='invalid', per_page='invalid'))
+        response = client.get('/api/orders?page=invalid&per_page=invalid')
         assert response.status_code == 200
         data = response.get_json()
         assert data['page'] == 1
         assert data['per_page'] == 50
 
     def test_api_get_orders_no_matching_search(self, client, authenticated_user):
-        response = client.get(url_for('main.api_get_orders', search='NonExistent'))
+        response = client.get('/api/orders?search=NonExistent')
         assert response.status_code == 200
         data = response.get_json()
         assert len(data['orders']) == 0
@@ -60,7 +57,7 @@ class TestApiGetOrders:
 
         monkeypatch.setattr(app.extensions['sqlalchemy'].session, 'query', mock_query_method)
 
-        response = client.get(url_for('main.api_get_orders'))
+        response = client.get('/api/orders')
         assert response.status_code == 500
         data = response.get_json()
         assert 'error' in data

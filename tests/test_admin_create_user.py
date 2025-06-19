@@ -1,5 +1,5 @@
 import pytest
-from flask import url_for, current_app
+from flask import current_app
 from models import User
 from routes import main_bp
 from bs4 import BeautifulSoup

@@ -1,5 +1,4 @@
 import pytest
-from flask import url_for
 import logging
 from datetime import date
 from models import Order, User
@@ -14,7 +13,7 @@ class TestApiDeleteOrder:
 
     def _get_csrf_token(self, client):
         """Helper to get CSRF token from the orders page."""
-        response = client.get(url_for('main.orders'))
+        response = client.get('/orders')
         soup = BeautifulSoup(response.data, 'html.parser')
         csrf_token = soup.find('input', {'name': 'csrf_token'})
         if csrf_token:
@@ -30,7 +29,7 @@ class TestApiDeleteOrder:
         assert csrf_token is not None
 
         response = client.delete(
-            url_for('main.api_delete_order', order_id=order.id),
+            f'/api/orders/{order.id}',
             headers={'X-CSRFToken': csrf_token}
         )
         assert response.status_code == 200
@@ -48,7 +47,7 @@ class TestApiDeleteOrder:
 
         with caplog.at_level(logging.INFO):
             client.delete(
-                url_for('main.api_delete_order', order_id=order.id),
+                f'/api/orders/{order.id}',
                 headers={'X-CSRFToken': csrf_token}
             )
             assert any('Order deleted for project: Old Project' in message for message in caplog.messages)
@@ -62,7 +61,7 @@ class TestApiDeleteOrder:
         assert csrf_token is not None
 
         response = client.delete(
-            url_for('main.api_delete_order', order_id=order.id),
+            f'/api/orders/{order.id}',
             headers={'X-CSRFToken': csrf_token}
         )
         data = response.get_json()
@@ -74,7 +73,7 @@ class TestApiDeleteOrder:
         assert csrf_token is not None
 
         response = client.delete(
-            url_for('main.api_delete_order', order_id=9999),
+            '/api/orders/9999',
             headers={'X-CSRFToken': csrf_token}
         )
         assert response.status_code == 404
@@ -87,7 +86,7 @@ class TestApiDeleteOrder:
         # テスト実行中のみCSRF保護を一時的に無効にする
         monkeypatch.setitem(app.config, 'WTF_CSRF_ENABLED', False)
 
-        response = client.delete(url_for('main.api_delete_order', order_id=order.id))
+        response = client.delete(f'/api/orders/{order.id}')
         assert response.status_code == 401
 
     def test_order_deletion_database_error(self, client, authenticated_user, db_session, monkeypatch):
@@ -104,7 +103,7 @@ class TestApiDeleteOrder:
         assert csrf_token is not None
 
         response = client.delete(
-            url_for('main.api_delete_order', order_id=order.id),
+            f'/api/orders/{order.id}',
             headers={'X-CSRFToken': csrf_token}
         )
         assert response.status_code == 500

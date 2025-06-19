@@ -1,5 +1,4 @@
 import pytest
-from flask import url_for
 from datetime import datetime, date
 from models import User, Order
 from bs4 import BeautifulSoup
@@ -7,7 +6,7 @@ from bs4 import BeautifulSoup
 class TestApiGetProfitData:
     def _get_csrf_token(self, client):
         """Helper to get CSRF token from the login page."""
-        response = client.get(url_for('main.login'))
+        response = client.get('/login')
         soup = BeautifulSoup(response.data, 'html.parser')
         csrf_token = soup.find('input', {'name': 'csrf_token'})
         if csrf_token:
@@ -39,7 +38,7 @@ class TestApiGetProfitData:
 
         csrf_token = self._get_csrf_token(client)
         headers = {'X-CSRFToken': csrf_token} if csrf_token else {}
-        response = client.get(url_for('main.api_get_profit_data', project_name='ProjectX', start_date='2023-01-01', end_date='2023-01-31'), headers=headers)
+        response = client.get('/api/profit-data?project_name=ProjectX&start_date=2023-01-01&end_date=2023-01-31', headers=headers)
         assert response.status_code == 200
         data = response.get_json()
         
@@ -57,7 +56,7 @@ class TestApiGetProfitData:
 
         csrf_token = self._get_csrf_token(client)
         headers = {'X-CSRFToken': csrf_token} if csrf_token else {}
-        response = client.get(url_for('main.api_get_profit_data', project_name='all', start_date='2023-01-01', end_date='2023-01-31'), headers=headers)
+        response = client.get('/api/profit-data?project_name=all&start_date=2023-01-01&end_date=2023-01-31', headers=headers)
         assert response.status_code == 200
         data = response.get_json()
         
@@ -73,13 +72,13 @@ class TestApiGetProfitData:
         csrf_token = self._get_csrf_token(client)
         headers = {'X-CSRFToken': csrf_token} if csrf_token else {}
         for _ in range(61):
-            response = client.get(url_for('main.api_get_profit_data', project_name='all', start_date='2023-01-01', end_date='2023-01-31'), headers=headers)
+            response = client.get('/api/profit-data?project_name=all&start_date=2023-01-01&end_date=2023-01-31', headers=headers)
         assert response.status_code == 429
 
     def test_api_get_profit_data_invalid_date_format(self, client, authenticated_user):
         csrf_token = self._get_csrf_token(client)
         headers = {'X-CSRFToken': csrf_token} if csrf_token else {}
-        response = client.get(url_for('main.api_get_profit_data', project_name='all', start_date='2023-01-01', end_date='invalid-date'), headers=headers)
+        response = client.get('/api/profit-data?project_name=all&start_date=2023-01-01&end_date=invalid-date', headers=headers)
         assert response.status_code == 400
         data = response.get_json()
         assert 'error' in data
@@ -88,7 +87,7 @@ class TestApiGetProfitData:
     def test_api_get_profit_data_missing_project_name(self, client, authenticated_user):
         csrf_token = self._get_csrf_token(client)
         headers = {'X-CSRFToken': csrf_token} if csrf_token else {}
-        response = client.get(url_for('main.api_get_profit_data', start_date='2023-01-01', end_date='2023-01-31'), headers=headers)
+        response = client.get('/api/profit-data?start_date=2023-01-01&end_date=2023-01-31', headers=headers)
         assert response.status_code == 200
         data = response.get_json()
         assert 'total_sales_amount' in data
@@ -104,7 +103,7 @@ class TestApiGetProfitData:
 
         db_instance = client.application.extensions['sqlalchemy']
         monkeypatch.setattr(db_instance.session, 'query', mock_query)
-        response = client.get(url_for('main.api_get_profit_data', project_name='all', start_date='2023-01-01', end_date='2023-01-31'), headers=headers)
+        response = client.get('/api/profit-data?project_name=all&start_date=2023-01-01&end_date=2023-01-31', headers=headers)
         assert response.status_code == 500
         data = response.get_json()
         assert 'error' in data

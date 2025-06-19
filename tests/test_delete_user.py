@@ -1,5 +1,4 @@
 import pytest
-from flask import url_for
 from models import User
 import logging
 from bs4 import BeautifulSoup
@@ -12,7 +11,7 @@ class TestDeleteUser:
 
     def _get_csrf_token(self, client):
         """Helper to get CSRF token from the orders page."""
-        response = client.get(url_for('main.orders'))
+        response = client.get('/orders')
         soup = BeautifulSoup(response.data, 'html.parser')
         csrf_token = soup.find('input', {'name': 'csrf_token'})
         if csrf_token:
@@ -29,7 +28,7 @@ class TestDeleteUser:
         headers = {'X-CSRFToken': csrf_token} if csrf_token else {}
 
         response = client.post(
-            url_for('main.delete_user'),
+            '/user/delete',
             json={'id': user_to_delete.id},
             headers=headers
         )
@@ -48,9 +47,9 @@ class TestDeleteUser:
         headers = {'X-CSRFToken': csrf_token} if csrf_token else {}
 
         for _ in range(5):
-            client.post(url_for('main.delete_user'), json={'id': user_to_delete.id}, headers=headers)
+            client.post('/user/delete', json={'id': user_to_delete.id}, headers=headers)
 
-        response = client.post(url_for('main.delete_user'), json={'id': user_to_delete.id}, headers=headers)
+        response = client.post('/user/delete', json={'id': user_to_delete.id}, headers=headers)
         assert response.status_code == 429
 
     def test_delete_user_success_message(self, client, authenticated_user, db_session):
@@ -63,7 +62,7 @@ class TestDeleteUser:
         headers = {'X-CSRFToken': csrf_token} if csrf_token else {}
 
         response = client.post(
-            url_for('main.delete_user'),
+            '/user/delete',
             json={'id': user_to_delete.id},
             headers=headers
         )
@@ -75,7 +74,7 @@ class TestDeleteUser:
         csrf_token = self._get_csrf_token(client)
         headers = {'X-CSRFToken': csrf_token} if csrf_token else {}
 
-        response = client.post(url_for('main.delete_user'), json={}, headers=headers)
+        response = client.post('/user/delete', json={}, headers=headers)
         assert response.status_code == 400
         data = response.get_json()
         assert 'error' in data
@@ -85,7 +84,7 @@ class TestDeleteUser:
         csrf_token = self._get_csrf_token(client)
         headers = {'X-CSRFToken': csrf_token} if csrf_token else {}
 
-        response = client.post(url_for('main.delete_user'), json={'id': 9999}, headers=headers)
+        response = client.post('/user/delete', json={'id': 9999}, headers=headers)
         assert response.status_code == 404
         data = response.get_json()
         assert 'error' in data
@@ -106,7 +105,7 @@ class TestDeleteUser:
         headers = {'X-CSRFToken': csrf_token} if csrf_token else {}
 
         response = client.post(
-            url_for('main.delete_user'),
+            '/user/delete',
             json={'id': user_to_delete.id},
             headers=headers
         )

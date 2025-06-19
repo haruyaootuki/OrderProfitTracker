@@ -1,5 +1,4 @@
 import pytest
-from flask import url_for
 from models import Order, User
 from routes import main_bp
 from datetime import date
@@ -14,7 +13,7 @@ def client(app):
 class TestApiUpdateOrder:
 
     def _get_csrf_token(self, client):
-        response = client.get(url_for('main.orders'))
+        response = client.get('/orders')
         soup = BeautifulSoup(response.data, 'html.parser')
         csrf_token = soup.find('input', {'name': 'csrf_token'})
         if csrf_token:
@@ -30,7 +29,7 @@ class TestApiUpdateOrder:
         assert csrf_token is not None
 
         response = client.put(
-            url_for('main.api_update_order', order_id=order.id),
+            f'/api/orders/{order.id}',
             data={
                 'customer_name': 'New Customer',
                 'project_name': 'New Project',
@@ -75,9 +74,9 @@ class TestApiUpdateOrder:
             'csrf_token': csrf_token
         }
         for _ in range(30):
-            response = client.put(url_for('main.api_update_order', order_id=order.id), data=data, content_type='application/x-www-form-urlencoded')
+            response = client.put(f'/api/orders/{order.id}', data=data, content_type='application/x-www-form-urlencoded')
             assert response.status_code == 200
-        response = client.put(url_for('main.api_update_order', order_id=order.id), data=data, content_type='application/x-www-form-urlencoded')
+        response = client.put(f'/api/orders/{order.id}', data=data, content_type='application/x-www-form-urlencoded')
         assert response.status_code == 429
 
     def test_order_update_json_response(self, client, authenticated_user, db_session):
@@ -89,7 +88,7 @@ class TestApiUpdateOrder:
         assert csrf_token is not None
 
         response = client.put(
-            url_for('main.api_update_order', order_id=order.id),
+            f'/api/orders/{order.id}',
             data={
                 'customer_name': 'New Customer',
                 'project_name': 'New Project',
@@ -121,7 +120,7 @@ class TestApiUpdateOrder:
         assert csrf_token is not None
 
         response = client.put(
-            url_for('main.api_update_order', order_id=order.id),
+            f'/api/orders/{order.id}',
             data={'csrf_token': csrf_token},
             content_type='application/x-www-form-urlencoded'
         )
@@ -145,7 +144,7 @@ class TestApiUpdateOrder:
         assert csrf_token is not None
 
         response = client.put(
-            url_for('main.api_update_order', order_id=order.id),
+            f'/api/orders/{order.id}',
             data={
                 'customer_name': 'New Customer',
                 'project_name': 'New Project',
@@ -175,7 +174,7 @@ class TestApiUpdateOrder:
         monkeypatch.setitem(app.config, 'WTF_CSRF_ENABLED', False)
 
         response = client.put(
-            url_for('main.api_update_order', order_id=order.id),
+            f'/api/orders/{order.id}',
             data={},
             content_type='application/x-www-form-urlencoded'
         )

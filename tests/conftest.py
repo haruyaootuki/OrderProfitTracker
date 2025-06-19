@@ -3,7 +3,6 @@ from app import create_app
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy # This import is no longer needed here, but kept for clarity if Base is imported here
 from models import User # Userモデルをインポート
-from flask import url_for # url_forをインポート
 from bs4 import BeautifulSoup # BeautifulSoupをインポート
 
 @pytest.fixture
