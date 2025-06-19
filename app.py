@@ -51,6 +51,21 @@ def create_app(test_config=None):
     if app.config["TESTING"]:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     else:
+        # SQLAlchemy エンジンオプションを先に設定
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "pool_recycle": 300,
+            "pool_pre_ping": True,
+            "pool_size": 5,
+            "max_overflow": 2,
+            "connect_args": {
+                "connect_timeout": 10,
+                "ssl": {
+                    "verify_identity": True
+                }
+            }
+        }
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
         MYSQL_USER = os.environ.get("MYSQL_USER")
         MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
         MYSQL_HOST = os.environ.get("MYSQL_HOST")
@@ -78,20 +93,6 @@ def create_app(test_config=None):
     # このアプリインスタンス用のdbインスタンスを、設定が完了した後に作成
     db.init_app(app)
 
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_recycle": 300,
-        "pool_pre_ping": True,
-        "pool_size": 5,
-        "max_overflow": 2,
-        "connect_args": {
-            "connect_timeout": 10,
-            "ssl": {
-                "verify_identity": True
-            }
-        }
-    }
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    
     # セキュリティ設定
     app.config['WTF_CSRF_ENABLED'] = True
     app.config['WTF_CSRF_TIME_LIMIT'] = 3600 # 1時間 (3600秒) に設定
