@@ -32,7 +32,7 @@ csrf = CSRFProtect()
 app = None
 db = None
 
-def create_app(test_config=None):
+def create_app(test_config=None, skip_create_all=False):
     global app, db # グローバル変数を参照
     # Flaskアプリケーションの作成
     app = Flask(__name__)
@@ -51,24 +51,41 @@ def create_app(test_config=None):
     if app.config["TESTING"]:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     else:
-        # 個別のMySQL環境変数からURIを構築
-        MYSQL_USER = os.environ.get("MYSQL_USER")
-        MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
-        MYSQL_HOST = os.environ.get("MYSQL_HOST")
-        MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
-
-        # MySQLデータベースURIを設定
-        MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DATABASE}"
-
-        # DATABASE_URLが存在しない場合、MYSQL_URIをフォールバックとして使用
-        app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", MYSQL_URI)
+        # If in Vercel environment
+        if os.environ.get("VERCEL_ENV"):
+            db_url = os.environ.get("DATABASE_URL")
+            if db_url:
+                app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+            else:
+                # In Vercel, if DATABASE_URL is not set, set URI to None to prevent build-time connection
+                # The app should ideally fail at runtime if a DB operation is attempted without a URL
+                app.config["SQLALCHEMY_DATABASE_URI"] = None
+                print("DEBUG: VERCEL_ENV is set but DATABASE_URL is not. Setting SQLALCHEMY_DATABASE_URI to None.")
+        else:
+            # Not in Vercel environment (local development or other)
+            db_url = os.environ.get("DATABASE_URL")
+            if db_url:
+                app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+            else:
+                # Fallback to individual MySQL env vars for local non-Vercel
+                MYSQL_USER = os.environ.get("MYSQL_USER")
+                MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
+                MYSQL_HOST = os.environ.get("MYSQL_HOST")
+                MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
+                MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DATABASE}"
+                app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
     
     # デバッグ用: DATABASE_URLの値をログに出力
     print(f"DEBUG: DATABASE_URL from os.environ: {os.environ.get('DATABASE_URL')}")
     print(f"DEBUG: SQLALCHEMY_DATABASE_URI in app.config: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
 
     # このアプリインスタンス用のdbインスタンスを、設定が完了した後に作成
-    db_instance = SQLAlchemy(model_class=Base)
+    db_instance = None
+    if app.config.get("SQLALCHEMY_DATABASE_URI") is not None:
+        db_instance = SQLAlchemy(model_class=Base)
+        db_instance.init_app(app)
+    else:
+        print("DEBUG: SQLALCHEMY_DATABASE_URI is None, skipping SQLAlchemy initialization.")
 
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_recycle": 300,
@@ -85,7 +102,6 @@ def create_app(test_config=None):
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     
     # 拡張機能をアプリで初期化
-    db_instance.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app) # limiterもここで初期化
@@ -118,7 +134,6 @@ def create_app(test_config=None):
     with app.app_context():
         # ここでモデルをインポートしないとテーブルが作成されません
         import models  # noqa: F401
-        db_instance.create_all()
     
     return app, db_instance # アプリとdbインスタンスを返す
 
