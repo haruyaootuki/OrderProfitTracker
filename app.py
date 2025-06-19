@@ -55,14 +55,15 @@ def create_app(test_config=None):
         MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
         MYSQL_HOST = os.environ.get("MYSQL_HOST")
         MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
+        MYSQL_PORT = os.environ.get("MYSQL_PORT", "4000")  # TiDB Cloudのデフォルトポート
         
         if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
-            # MySQLの接続文字列を構築
-            MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DATABASE}"
+            # TiDB Cloud用の接続文字列を構築（ポート番号を追加）
+            MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}?ssl_mode=VERIFY_IDENTITY"
             app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
             
             # デバッグ情報を出力（パスワードは除く）
-            print(f"DEBUG: Connecting to MySQL - Host: {MYSQL_HOST}, Database: {MYSQL_DATABASE}, User: {MYSQL_USER}")
+            print(f"DEBUG: Connecting to MySQL - Host: {MYSQL_HOST}:{MYSQL_PORT}, Database: {MYSQL_DATABASE}, User: {MYSQL_USER}")
         else:
             missing_vars = [var for var, value in {
                 'MYSQL_USER': MYSQL_USER,
@@ -81,7 +82,10 @@ def create_app(test_config=None):
         "pool_size": 5,
         "max_overflow": 2,
         "connect_args": {
-            "connect_timeout": 10
+            "connect_timeout": 10,
+            "ssl": {
+                "ssl_mode": "VERIFY_IDENTITY"
+            }
         }
     }
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
