@@ -6,25 +6,22 @@ from decimal import Decimal
 import logging
 from datetime import datetime, timedelta, date
 from functools import wraps
+import functools
+from urllib.parse import urlparse
 
 from app import limiter
 from models import User, Order
-from forms import LoginForm, OrderForm
+from forms import LoginForm, OrderForm, UserForm
 
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
-    if current_user.is_authenticated:
-        return redirect(url_for('main.orders'))
     return redirect(url_for('main.login'))
 
 @main_bp.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('main.orders'))
-    
     form = LoginForm()
     if form.validate_on_submit():
         user = current_app.extensions['sqlalchemy'].session.query(User).filter_by(username=form.username.data).first()
@@ -33,7 +30,10 @@ def login():
             login_user(user, remember=True)
             next_page = request.args.get('next')
             flash('ログインしました', 'success')
-            return redirect(next_page) if next_page else redirect(url_for('main.orders'))
+            # URLリダイレクトの脆弱性を防ぐためのロジックを修正
+            if next_page and urlparse(next_page).netloc == '': # next_pageが存在し、かつ外部URLでない場合
+                return redirect(next_page)
+            return redirect(url_for('main.orders')) # 外部URLまたはnext_pageがない場合はデフォルトページにリダイレクト
         else:
             flash('ユーザー名またはパスワードが正しくありません', 'error')
             logging.warning(f"Failed login attempt for username: {form.username.data}")

@@ -67,3 +67,20 @@ class OrderForm(FlaskForm):
         Optional(),
         Length(max=2000, message='詳細は2000文字以下で入力してください')
     ])
+
+class UserForm(FlaskForm):
+    id = HiddenField()
+    username = StringField('ユーザー名', validators=[
+        DataRequired(message='ユーザー名は必須です'),
+        Length(min=3, max=64, message='ユーザー名は3文字以上64文字以下で入力してください')
+    ])
+    password = PasswordField('パスワード', validators=[
+        DataRequired(message='パスワードは必須です'),
+        Length(min=6, message='パスワードは6文字以上で入力してください')
+    ])
+    is_admin = BooleanField('管理者', default=False)
+
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if user and user.id != int(self.id.data or 0):
+            raise ValidationError('そのユーザー名はすでに使用されています')
