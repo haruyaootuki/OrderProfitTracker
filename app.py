@@ -57,10 +57,20 @@ def create_app(test_config=None):
         MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
         
         if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
+            # MySQLの接続文字列を構築
             MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DATABASE}"
             app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
+            
+            # デバッグ情報を出力（パスワードは除く）
+            print(f"DEBUG: Connecting to MySQL - Host: {MYSQL_HOST}, Database: {MYSQL_DATABASE}, User: {MYSQL_USER}")
         else:
-            raise ValueError("Required MySQL environment variables are not set")
+            missing_vars = [var for var, value in {
+                'MYSQL_USER': MYSQL_USER,
+                'MYSQL_PASSWORD': MYSQL_PASSWORD,
+                'MYSQL_HOST': MYSQL_HOST,
+                'MYSQL_DATABASE': MYSQL_DATABASE
+            }.items() if not value]
+            raise ValueError(f"Missing required MySQL environment variables: {', '.join(missing_vars)}")
 
     # このアプリインスタンス用のdbインスタンスを、設定が完了した後に作成
     db.init_app(app)
@@ -68,6 +78,11 @@ def create_app(test_config=None):
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_recycle": 300,
         "pool_pre_ping": True,
+        "pool_size": 5,
+        "max_overflow": 2,
+        "connect_args": {
+            "connect_timeout": 10
+        }
     }
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     
