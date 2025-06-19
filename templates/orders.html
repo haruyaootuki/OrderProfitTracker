@@ -2,6 +2,11 @@
 
 {% block title %}受注一覧 - 受注管理システム{% endblock %}
 
+{% block head %}
+{{ super() }}
+<link href="https://unpkg.com/tabulator-tables@6.2.0/dist/css/tabulator.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-list-alt me-2"></i>受注一覧</h2>
@@ -13,68 +18,90 @@
 <!-- Search and filters -->
 <div class="card mb-4">
     <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <div class="input-group">
-                    <span class="input-group-text">
-                        <i class="fas fa-search"></i>
-                    </span>
-                    <input type="text" class="form-control" id="searchInput" placeholder="受注番号、顧客名、プロジェクト名で検索">
+        <form id="searchForm">
+            <div class="row g-3">
+                <!-- 受注日範囲 -->
+                <div class="col-md-6">
+                    <div class="row">
+                        <div class="col">
+                            <label for="orderDateFrom" class="form-label">受注日（開始）</label>
+                            <input type="date" class="form-control" id="orderDateFrom">
+                        </div>
+                        <div class="col">
+                            <label for="orderDateTo" class="form-label">受注日（終了）</label>
+                            <input type="date" class="form-control" id="orderDateTo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 顧客名 -->
+                <div class="col-md-3">
+                    <label for="searchCustomerName" class="form-label">顧客名</label>
+                    <input type="text" class="form-control" id="searchCustomerName" placeholder="顧客名で検索">
+                </div>
+
+                <!-- 案件名 -->
+                <div class="col-md-3">
+                    <label for="searchProjectName" class="form-label">案件名</label>
+                    <input type="text" class="form-control" id="searchProjectName" placeholder="案件名で検索">
+                </div>
+
+                <!-- 契約 -->
+                <div class="col-md-3">
+                    <label for="searchContractType" class="form-label">契約</label>
+                    <input type="text" class="form-control" id="searchContractType" placeholder="例：準委任、請負、派遣など">
+                </div>
+
+                <!-- 確度 -->
+                <div class="col-md-3">
+                    <label for="searchSalesStage" class="form-label">確度</label>
+                    <input type="text" class="form-control" id="searchSalesStage" placeholder="例：提案中、受注済、失注、完了など">
+                </div>
+
+                <!-- 請求日範囲 -->
+                <div class="col-md-4">
+                    <div class="row">
+                        <div class="col">
+                            <label for="billingDateFrom" class="form-label">請求日（開始）</label>
+                            <input type="date" class="form-control" id="billingDateFrom">
+                        </div>
+                        <div class="col">
+                            <label for="billingDateTo" class="form-label">請求日（終了）</label>
+                            <input type="date" class="form-control" id="billingDateTo">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 仕掛 -->
+                <div class="col-md-2">
+                    <label for="searchWorkInProgress" class="form-label">仕掛</label>
+                    <select class="form-select" id="searchWorkInProgress">
+                        <option value="">すべて</option>
+                        <option value="true">あり</option>
+                        <option value="false">なし</option>
+                    </select>
+                </div>
+
+                <!-- 検索ボタン -->
+                <div class="col-md-12">
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" id="clearSearchBtn" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>検索条件クリア
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>検索
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6 mt-2 mt-md-0">
-                <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()">
-                    <i class="fas fa-times me-1"></i>クリア
-                </button>
-                <button type="button" class="btn btn-outline-primary" onclick="refreshOrders()">
-                    <i class="fas fa-sync-alt me-1"></i>更新
-                </button>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
 
 <!-- Orders table -->
 <div class="card">
-    <div class="card-body">
-        <div id="loadingSpinner" class="text-center py-4">
-            <div class="spinner-border" role="status">
-                <span class="visually-hidden">読み込み中...</span>
-            </div>
-        </div>
-        
-        <div id="ordersTableContainer" style="display: none;">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover" id="ordersTable">
-                    <thead>
-                        <tr>
-                            <th>受注番号</th>
-                            <th>顧客名</th>
-                            <th>プロジェクト名</th>
-                            <th>受注金額</th>
-                            <th>受注日</th>
-                            <th>納期</th>
-                            <th>ステータス</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ordersTableBody">
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Pagination -->
-            <nav aria-label="ページネーション">
-                <ul class="pagination justify-content-center" id="pagination">
-                </ul>
-            </nav>
-        </div>
-        
-        <div id="emptyState" class="text-center py-5" style="display: none;">
-            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-            <h5 class="text-muted">受注データがありません</h5>
-            <p class="text-muted">「新規受注」ボタンから最初の受注を登録してください</p>
-        </div>
+    <div class="card-body" style="overflow-x: auto;">
+        <div id="orders-table"></div>
     </div>
 </div>
 
@@ -91,25 +118,8 @@
             <form id="orderForm">
                 {{ form.hidden_tag() }}
                 {{ form.id() }}
-                
+
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.order_number.label(class="form-label required") }}
-                                {{ form.order_number(class="form-control") }}
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                {{ form.status.label(class="form-label required") }}
-                                {{ form.status(class="form-select") }}
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -126,11 +136,21 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
-                                {{ form.order_amount.label(class="form-label required") }}
+                                {{ form.sales_amount.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text">¥</span>
+                                    {{ form.sales_amount(class="form-control") }}
+                                </div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                {{ form.order_amount.label(class="form-label") }}
                                 <div class="input-group">
                                     <span class="input-group-text">¥</span>
                                     {{ form.order_amount(class="form-control") }}
@@ -140,27 +160,63 @@
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
+                                {{ form.invoiced_amount.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text">¥</span>
+                                    {{ form.invoiced_amount(class="form-control") }}
+                                </div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
                                 {{ form.order_date.label(class="form-label required") }}
                                 {{ form.order_date(class="form-control") }}
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
-                                {{ form.delivery_date.label(class="form-label") }}
-                                {{ form.delivery_date(class="form-control") }}
+                                {{ form.billing_month.label(class="form-label") }}
+                                {{ form.billing_month(class="form-control") }}
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
                     </div>
-                    
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.contract_type.label(class="form-label") }}
+                                {{ form.contract_type(class="form-control", placeholder="例：準委任、請負、派遣など") }}
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.sales_stage.label(class="form-label") }}
+                                {{ form.sales_stage(class="form-control", placeholder="例：提案中、受注済、失注、完了など") }}
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        {{ form.work_in_progress(class="form-check-input") }}
+                        {{ form.work_in_progress.label(class="form-check-label") }}
+                        <div class="invalid-feedback"></div>
+                    </div>
+
                     <div class="mb-3">
-                        {{ form.remarks.label(class="form-label") }}
-                        {{ form.remarks(class="form-control", rows="3") }}
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="3") }}
                         <div class="invalid-feedback"></div>
                     </div>
                 </div>
-                
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
                     <button type="submit" class="btn btn-primary" id="orderSubmitBtn">
@@ -198,5 +254,8 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js.map"></script>
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.2.0/dist/js/tabulator.min.js"></script>
 <script src="{{ url_for('static', filename='js/orders.js') }}"></script>
 {% endblock %}

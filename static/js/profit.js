@@ -1,395 +1,259 @@
 // Profit Analysis JavaScript
 class ProfitAnalyzer {
     constructor() {
-        this.profitChart = null;
-        this.costChart = null;
         this.currentData = null;
         
         this.initializeEventListeners();
-        this.loadProfitData();
+        this.loadProjects();
+        // this.initializeDateInputs();
     }
     
     initializeEventListeners() {
-        // Cost form submission
-        document.getElementById('costForm').addEventListener('submit', (e) => {
+        // Analysis form submission
+        document.getElementById('analysisForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            this.saveCostData();
+            this.loadProfitData();
         });
-        
-        // Real-time calculation on input change
-        const costInputs = ['employee_cost', 'bp_cost'];
-        costInputs.forEach(inputId => {
-            const input = document.getElementById(inputId);
-            if (input) {
-                input.addEventListener('input', () => {
-                    this.calculateRealTimeProfit();
-                });
+
+        // コスト入力のフォーマット処理を統一
+        const setupCostInput = (inputElement) => {
+            // 初期値を0に設定し、フォーマット
+            if (!inputElement.value) {
+                inputElement.value = '0';
+            } else {
+                inputElement.value = parseInt(inputElement.value.replace(/,/g, '')).toLocaleString('ja-JP');
             }
-        });
+
+            // 入力時の処理
+            inputElement.addEventListener('input', (e) => {
+                // 数値とカンマ以外の文字を除去
+                let value = e.target.value.replace(/[^\d,]/g, '');
+                // カンマを一旦除去して数値に変換し、最大値を制限
+                let numValue = parseInt(value.replace(/,/g, '')) || 0;
+                if (numValue > 100000000000) { // 1000億に制限
+                    numValue = 100000000000;
+                }
+                // カンマ区切りを適用（入力途中でも適用）
+                e.target.value = numValue.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+
+                // 関連する表示データの更新（リアルタイム）
+                if (this.currentData) {
+                    this.renderProfitData(this.currentData);
+                }
+            });
+
+            // フォーカスを失った時のフォーマット
+            inputElement.addEventListener('blur', () => {
+                let numValue = parseInt(inputElement.value.replace(/,/g, '')) || 0;
+                inputElement.value = numValue.toLocaleString('ja-JP', { maximumFractionDigits: 0 });
+            });
+
+            // フォーカスを得た時の処理 (カンマを除去して編集しやすくする)
+            inputElement.addEventListener('focus', () => {
+                const value = inputElement.value.replace(/,/g, '');
+                inputElement.value = value === '0' ? '' : value;
+            });
+        };
+
+        const employeeCostInput = document.getElementById('employee_cost_input');
+        const bpCostInput = document.getElementById('bp_cost_input');
+
+        if (employeeCostInput) {
+            setupCostInput(employeeCostInput);
+        }
+        if (bpCostInput) {
+            setupCostInput(bpCostInput);
+        }
+    }
+    
+    // initializeDateInputs() {
+    //     // デフォルトで現在年月を設定 -> YYYY-MM-DD形式に変更
+    //     const today = new Date();
+    //     const year = today.getFullYear();
+    //     const month = (today.getMonth() + 1).toString().padStart(2, '0');
+
+    //     // 月の最初の日と最後の日を計算
+    //     const firstDayOfMonth = new Date(year, today.getMonth(), 1);
+    //     const lastDayOfMonth = new Date(year, today.getMonth() + 1, 0);
+
+    //     document.getElementById('startDate').value = firstDayOfMonth.toISOString().split('T')[0];
+    //     document.getElementById('endDate').value = lastDayOfMonth.toISOString().split('T')[0];
+    // }
+    
+    async loadProjects() {
+        try {
+            const response = await fetch('/api/projects', {
+                headers: {
+                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+                }
+            });
+            if (!response.ok) {
+                throw new Error('プロジェクト一覧の取得に失敗しました');
+            }
+            
+            const data = await response.json();
+            const select = document.getElementById('projectSelect');
+            
+            // 既存のオプションをクリア（最初の2つの静的オプションを除く）
+            while (select.options.length > 2) {
+                select.remove(2);
+            }
+            
+            // プロジェクトを追加
+            data.projects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project;
+                option.textContent = project;
+                select.appendChild(option);
+            });
+            
+        } catch (error) {
+            console.error('Error loading projects:', error);
+            this.showError('プロジェクト一覧の読み込み中にエラーが発生しました');
+        }
     }
     
     async loadProfitData() {
         try {
-            this.showProfitLoading();
-            
-            const response = await fetch('/api/profit-data', {
-                headers: {
-                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+            const project_name = document.getElementById('projectSelect').value;
+            const start_date = document.getElementById('startDate').value;
+            const end_date = document.getElementById('endDate').value;
+
+            try {
+                this.showProfitLoading();
+
+                // URLからコストパラメータを削除
+                const response = await fetch(`/api/profit-data?project_name=${encodeURIComponent(project_name)}&start_date=${start_date}&end_date=${end_date}`, {
+                    headers: {
+                        'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'データの取得に失敗しました');
                 }
-            });
-            
-            if (!response.ok) {
-                throw new Error('データの取得に失敗しました');
+
+                const data = await response.json();
+                this.currentData = data; // 最新データを保存
+                this.renderProfitData(data);
+            } finally {
+                this.hideProfitLoading();
             }
-            
-            const data = await response.json();
-            this.currentData = data;
-            this.renderProfitData(data);
-            this.renderCharts(data);
-            this.hideProfitLoading();
-            
+
         } catch (error) {
             console.error('Error loading profit data:', error);
-            this.showError('利益データの読み込み中にエラーが発生しました');
-            this.hideProfitLoading();
+            this.showError(error.message || '利益データの読み込み中にエラーが発生しました');
         }
     }
     
     renderProfitData(data) {
-        const profitData = document.getElementById('profitData');
+        const profitDataDisplay = document.getElementById('profitDataDisplay');
         const noProfitData = document.getElementById('noProfitData');
-        
-        if (data.total_revenue === 0 && data.total_cost === 0) {
-            profitData.style.display = 'none';
-            noProfitData.style.display = 'block';
-            return;
-        }
-        
-        profitData.style.display = 'block';
+
+        // if (data.total_sales_amount === 0 && data.total_order_amount === 0 && data.total_invoiced_amount === 0) {
+        //     profitDataDisplay.style.display = 'none';
+        //     noProfitData.style.display = 'block';
+        //     return;
+        // }
+
+        profitDataDisplay.style.display = 'block';
         noProfitData.style.display = 'none';
-        
-        // Update values
-        document.getElementById('totalRevenue').textContent = this.formatCurrency(data.total_revenue);
-        document.getElementById('totalCost').textContent = this.formatCurrency(data.total_cost);
-        document.getElementById('totalProfit').textContent = this.formatCurrency(data.profit);
-        document.getElementById('employeeCost').textContent = this.formatCurrency(data.employee_cost);
-        document.getElementById('bpCost').textContent = this.formatCurrency(data.bp_cost);
-        
-        // Update profit rate and styling
-        const profitRate = data.profit_rate;
-        const profitRateElement = document.getElementById('profitRate');
-        const totalProfitElement = document.getElementById('totalProfit');
-        const progressBar = document.getElementById('profitProgressBar');
-        
-        profitRateElement.textContent = `${profitRate.toFixed(1)}%`;
-        
-        // Color coding based on profit
-        if (data.profit > 0) {
-            totalProfitElement.className = 'mb-2 profit-positive';
-            progressBar.className = 'progress-bar bg-success';
-        } else if (data.profit < 0) {
-            totalProfitElement.className = 'mb-2 profit-negative';
-            progressBar.className = 'progress-bar bg-danger';
-        } else {
-            totalProfitElement.className = 'mb-2 profit-neutral';
-            progressBar.className = 'progress-bar bg-warning';
-        }
-        
-        // Update progress bar
-        const progressPercentage = Math.min(Math.abs(profitRate), 100);
-        progressBar.style.width = `${progressPercentage}%`;
-        
-        // Update period info
-        const periodInfo = document.getElementById('periodInfo');
-        if (data.period_start && data.period_end) {
-            periodInfo.textContent = `期間: ${this.formatDate(data.period_start)} 〜 ${this.formatDate(data.period_end)}`;
-        } else {
-            periodInfo.textContent = '期間情報なし';
-        }
-    }
-    
-    renderCharts(data) {
-        this.renderProfitChart(data);
-        this.renderCostBreakdownChart(data);
-    }
-    
-    renderProfitChart(data) {
-        const ctx = document.getElementById('profitChart').getContext('2d');
-        
-        // Destroy existing chart
-        if (this.profitChart) {
-            this.profitChart.destroy();
-        }
-        
-        this.profitChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['売上', '原価', '利益'],
-                datasets: [{
-                    data: [data.total_revenue, data.total_cost, Math.max(0, data.profit)],
-                    backgroundColor: [
-                        'rgba(54, 162, 235, 0.8)',
-                        'rgba(255, 99, 132, 0.8)',
-                        'rgba(75, 192, 192, 0.8)'
-                    ],
-                    borderColor: [
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(75, 192, 192, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: '売上・原価・利益比較',
-                        color: '#fff'
-                    },
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return '¥' + new Intl.NumberFormat('ja-JP').format(value);
-                            },
-                            color: '#fff'
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            color: '#fff'
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        }
-                    }
-                }
-            }
-        });
-    }
-    
-    renderCostBreakdownChart(data) {
-        const ctx = document.getElementById('costBreakdownChart').getContext('2d');
-        
-        // Destroy existing chart
-        if (this.costChart) {
-            this.costChart.destroy();
-        }
-        
-        const totalCost = data.employee_cost + data.bp_cost;
-        
-        if (totalCost === 0) {
-            // Show empty state
-            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-            ctx.fillStyle = '#6c757d';
-            ctx.font = '16px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('原価データがありません', ctx.canvas.width / 2, ctx.canvas.height / 2);
-            return;
-        }
-        
-        this.costChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['社員原価', 'BP原価'],
-                datasets: [{
-                    data: [data.employee_cost, data.bp_cost],
-                    backgroundColor: [
-                        'rgba(255, 206, 86, 0.8)',
-                        'rgba(153, 102, 255, 0.8)'
-                    ],
-                    borderColor: [
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(153, 102, 255, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: '原価内訳',
-                        color: '#fff'
-                    },
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#fff'
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed;
-                                const percentage = ((value / totalCost) * 100).toFixed(1);
-                                return `${label}: ¥${new Intl.NumberFormat('ja-JP').format(value)} (${percentage}%)`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    
-    async saveCostData() {
-        try {
-            const form = document.getElementById('costForm');
-            const formData = new FormData(form);
-            const submitBtn = form.querySelector('button[type="submit"]');
-            
-            // Show loading state
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>保存中...';
-            
-            // Clear previous validation errors
-            this.clearValidationErrors();
-            
-            const response = await fetch('/api/cost-data', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
-                },
-                body: formData
-            });
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                if (data.errors) {
-                    this.showValidationErrors(data.errors);
-                } else {
-                    throw new Error(data.error || '保存に失敗しました');
-                }
-                return;
-            }
-            
-            // Success
-            this.showSuccess(data.message);
-            this.loadProfitData(); // Reload profit data
-            
-        } catch (error) {
-            console.error('Error saving cost data:', error);
-            this.showError(error.message || '保存中にエラーが発生しました');
-        } finally {
-            // Reset button state
-            const submitBtn = document.getElementById('costForm').querySelector('button[type="submit"]');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>原価データ保存';
-        }
-    }
-    
-    calculateRealTimeProfit() {
-        if (!this.currentData) return;
-        
-        const employeeCost = parseFloat(document.getElementById('employee_cost').value) || 0;
-        const bpCost = parseFloat(document.getElementById('bp_cost').value) || 0;
+
+        const projectName = document.getElementById('projectSelect').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        const projectNameDisplay = projectName === 'all' ? 'すべての案件' : projectName;
+        document.getElementById('periodInfo').textContent = `${projectNameDisplay} (${this.formatDate(startDate)} 〜 ${this.formatDate(endDate)})`;
+
+        document.getElementById('totalSalesAmount').textContent = `¥${data.total_sales_amount.toLocaleString()}`;
+        document.getElementById('totalOrderAmount').textContent = `¥${data.total_order_amount.toLocaleString()}`;
+        document.getElementById('totalInvoicedAmount').textContent = `¥${data.total_invoiced_amount.toLocaleString()}`;
+
+        // 手動入力された社員コストとBPコストを取得し、計算
+        const employeeCost = parseInt(document.getElementById('employee_cost_input').value.replace(/,/g, '')) || 0;
+        const bpCost = parseInt(document.getElementById('bp_cost_input').value.replace(/,/g, '')) || 0;
+
         const totalCost = employeeCost + bpCost;
-        const profit = this.currentData.total_revenue - totalCost;
-        const profitRate = this.currentData.total_revenue > 0 ? 
-            (profit / this.currentData.total_revenue * 100) : 0;
-        
-        // Update preview (could add a preview section if needed)
-        console.log('Real-time calculation:', { profit, profitRate });
-    }
-    
-    clearValidationErrors() {
-        const errorElements = document.querySelectorAll('.invalid-feedback');
-        errorElements.forEach(el => el.textContent = '');
-        
-        const invalidInputs = document.querySelectorAll('.is-invalid');
-        invalidInputs.forEach(input => input.classList.remove('is-invalid'));
-    }
-    
-    showValidationErrors(errors) {
-        for (const [field, messages] of Object.entries(errors)) {
-            const input = document.getElementById(field);
-            if (input) {
-                input.classList.add('is-invalid');
-                const feedback = input.parentNode.querySelector('.invalid-feedback');
-                if (feedback) {
-                    feedback.textContent = messages.join(', ');
-                }
-            }
+        const profit = data.total_sales_amount - totalCost;
+
+        let profitRate = 0;
+        if (data.total_sales_amount > 0) {
+            profitRate = (profit / data.total_sales_amount) * 100;
+        }
+
+        document.getElementById('calculatedTotalCost').textContent = `¥${totalCost.toLocaleString()}`;
+        document.getElementById('calculatedProfit').textContent = `¥${profit.toLocaleString()}`;
+
+        const profitRateElement = document.getElementById('calculatedProfitRate');
+        profitRateElement.textContent = `${profitRate.toFixed(1)}%`;
+
+        if (profit < 0) {
+            profitRateElement.classList.remove('text-success');
+            profitRateElement.classList.add('text-danger');
+        } else {
+            profitRateElement.classList.remove('text-danger');
+            profitRateElement.classList.add('text-success');
         }
     }
     
     showProfitLoading() {
-        document.getElementById('loadingProfit').style.display = 'block';
-        document.getElementById('profitData').style.display = 'none';
-        document.getElementById('noProfitData').style.display = 'none';
+        try {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('d-none');
+            }
+        } catch (error) {
+            console.warn('Loading overlay not found:', error);
+        }
     }
     
     hideProfitLoading() {
-        document.getElementById('loadingProfit').style.display = 'none';
-    }
-    
-    showSuccess(message) {
-        this.showAlert(message, 'success');
+        try {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('d-none');
+            }
+        } catch (error) {
+            console.warn('Loading overlay not found:', error);
+        }
     }
     
     showError(message) {
-        this.showAlert(message, 'danger');
+        // エラーメッセージは既にサーバー側でフラッシュメッセージとして設定されているため、
+        // ここではページをリロードしてフラッシュメッセージを表示する
+        window.location.reload();
     }
     
-    showAlert(message, type) {
-        const alertHtml = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                ${this.escapeHtml(message)}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        
-        const container = document.querySelector('main .container');
-        container.insertAdjacentHTML('afterbegin', alertHtml);
-        
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-            const alert = container.querySelector('.alert');
-            if (alert) {
-                const bsAlert = bootstrap.Alert.getInstance(alert);
-                if (bsAlert) {
-                    bsAlert.close();
-                }
-            }
-        }, 5000);
-    }
-    
-    formatCurrency(amount) {
-        return '¥' + new Intl.NumberFormat('ja-JP').format(Math.round(amount));
-    }
-    
-    formatDate(dateString) {
-        const date = new Date(dateString);
-        return new Intl.DateTimeFormat('ja-JP', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        }).format(date);
-    }
-    
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+    formatDate(dateStr) {
+        // YYYY-MM-DD 形式の日付文字列を YYYY年M月D日 形式に変換
+        const [year, month, day] = dateStr.split('-');
+        return `${parseInt(year)}年${parseInt(month)}月${parseInt(day)}日`;
     }
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.profitAnalyzer = new ProfitAnalyzer();
+    const analyzer = new ProfitAnalyzer(); // ProfitAnalyzerのインスタンスを一つだけ作成
+
+    // コスト入力フィールドのイベントリスナーを再設定
+    const employeeCostInput = document.getElementById('employee_cost_input');
+    const bpCostInput = document.getElementById('bp_cost_input');
+
+    if (employeeCostInput) {
+        employeeCostInput.addEventListener('input', () => {
+            if (analyzer.currentData) {
+                analyzer.renderProfitData(analyzer.currentData);
+            }
+        });
+    }
+
+    if (bpCostInput) {
+        bpCostInput.addEventListener('input', () => {
+            if (analyzer.currentData) {
+                analyzer.renderProfitData(analyzer.currentData);
+            }
+        });
+    }
 });
