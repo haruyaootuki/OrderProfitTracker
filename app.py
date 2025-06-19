@@ -103,3 +103,7 @@ def create_app(test_config=None):
 # app = create_app() # This line should remain commented out for testing
 # Import routes after the app is created to avoid circular imports
 # import routes
+
+# Vercelデプロイ用にアプリケーションインスタンスを作成
+if os.getenv('VERCEL_ENV'):
+    app = create_app()
