@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-# VERCEL_ENVのチェックを削除し、常に.envファイルを読み込む
 load_dotenv()
 
 class Base(DeclarativeBase):
@@ -33,7 +32,7 @@ csrf = CSRFProtect()
 # グローバルスコープでappを宣言（初期値はNone）
 app = None
 
-def create_app(test_config=None, skip_create_all=False):
+def create_app(test_config=None):
     global app # グローバル変数を参照
     # Flaskアプリケーションの作成
     app = Flask(__name__)
@@ -52,34 +51,21 @@ def create_app(test_config=None, skip_create_all=False):
     if app.config["TESTING"]:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     else:
-        # If in Vercel environment
-        if os.environ.get("VERCEL_ENV"):
-            db_url = os.environ.get("DATABASE_URL")
-            if db_url:
-                # Use DATABASE_URL if provided in Vercel
-                app.config["SQLALCHEMY_DATABASE_URI"] = db_url
-            else:
-                # In Vercel, if DATABASE_URL is not set, use in-memory SQLite for build phase
-                # This prevents connection attempts to MySQL during build
-                app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-                print("DEBUG: VERCEL_ENV is set but DATABASE_URL is not. Using in-memory SQLite for build.")
+        db_url = os.environ.get("DATABASE_URL")
+        if db_url:
+            app.config["SQLALCHEMY_DATABASE_URI"] = db_url
         else:
-            # Not in Vercel environment (local development or other)
-            db_url = os.environ.get("DATABASE_URL")
-            if db_url:
-                app.config["SQLALCHEMY_DATABASE_URI"] = db_url
-            else:
-                # Fallback to individual MySQL env vars for local non-Vercel
-                MYSQL_USER = os.environ.get("MYSQL_USER")
-                MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
-                MYSQL_HOST = os.environ.get("MYSQL_HOST")
-                MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
+            # Fallback to individual MySQL env vars for local/non-DATABASE_URL environments
+            MYSQL_USER = os.environ.get("MYSQL_USER")
+            MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
+            MYSQL_HOST = os.environ.get("MYSQL_HOST")
+            MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
+            if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
                 MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DATABASE}"
                 app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
-    
-    # デバッグ用: DATABASE_URLの値をログに出力
-    print(f"DEBUG: DATABASE_URL from os.environ: {os.environ.get('DATABASE_URL')}")
-    print(f"DEBUG: SQLALCHEMY_DATABASE_URI in app.config: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
+            else:
+                app.config["SQLALCHEMY_DATABASE_URI"] = None
+                print("DEBUG: No DATABASE_URL or MySQL environment variables found. SQLALCHEMY_DATABASE_URI is None.")
 
     # このアプリインスタンス用のdbインスタンスを、設定が完了した後に作成
     db.init_app(app)
@@ -119,26 +105,22 @@ def create_app(test_config=None, skip_create_all=False):
 
     @login_manager.user_loader
     def load_user(user_id):
-        # dbインスタンスはcurrent_app.extensions['sqlalchemy']から取得
-        db_from_current_app = current_app.extensions['sqlalchemy']
-        from models import User
-        return db_from_current_app.session.query(User).get(int(user_id))
+        from models import User 
+        return db.session.query(User).get(int(user_id))
     
     # ブループリントを登録
     from routes import main_bp
     app.register_blueprint(main_bp)
 
     with app.app_context():
-        # ここでモデルをインポートしないとテーブルが作成されません
         import models  # noqa: F401
-        if not skip_create_all:
-            pass # 何もしない
+
+        if app.config["TESTING"]:
+            db.create_all()
     
     return app # アプリを返す
 
 # アプリケーションが直接実行された場合にのみインスタンスを作成
 if __name__ == '__main__':
-    app = create_app(skip_create_all=False) # ここでskip_create_allをFalseに設定
-
-# 循環インポートを防ぐため、アプリが作成された後にルートをインポート
-# import routes # noqa: F401
+    app = create_app()
+    app.run(host="0.0.0.0", port=5000, debug=True)
