@@ -1,5 +1,5 @@
 import pytest
-from app import create_app, limiter # create_appとlimiterをインポート
+from app import create_app, limiter, db # dbをインポート
 from flask_login import UserMixin
 # from flask_sqlalchemy import SQLAlchemy # この行はもう不要です
 from models import User # Userモデルをインポート
@@ -19,10 +19,9 @@ from bs4 import BeautifulSoup # BeautifulSoupをインポート
 def app():
     # Flask appインスタンスをcreate_appで作成し、TESTINGモードを有効にする
     # レート制限はテストで有効にしておく
-    flask_app, test_db_instance = create_app(test_config={
+    flask_app = create_app(test_config={
         "TESTING": True,
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"
-        # "RATELIMIT_ENABLED": False は削除します
     })
     
     # 例外がエラーハンドラーに伝播するように設定
@@ -30,20 +29,19 @@ def app():
 
     with flask_app.app_context():
         # インメモリデータベースにすべてのテーブルを作成
-        test_db_instance.create_all()
+        db.create_all()
 
         yield flask_app # アプリをテストのためにyieldする
 
         # クリーンアップ: インメモリテストデータベースからすべてのテーブルを削除
-        test_db_instance.session.remove()
-        test_db_instance.drop_all()
+        db.session.remove()
+        db.drop_all()
 
 @pytest.fixture
 def db_session(app):
-    test_db = app.extensions['sqlalchemy'] # appフィクスチャからdbインスタンスを取得
     with app.app_context():
-        yield test_db.session
-        test_db.session.rollback()
+        yield db.session
+        db.session.rollback()
 
 class TestUser(UserMixin):
     def __init__(self, id):

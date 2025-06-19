@@ -19,6 +19,8 @@ load_dotenv()
 class Base(DeclarativeBase):
     pass
 
+db = SQLAlchemy(model_class=Base)
+
 # グローバルなlimiterインスタンスは保持（init_appでアプリケーションにアタッチ）
 limiter = Limiter(
     key_func=get_remote_address
@@ -28,12 +30,11 @@ limiter = Limiter(
 login_manager = LoginManager()
 csrf = CSRFProtect()
 
-# グローバルスコープでappとdbを宣言（初期値はNone）
+# グローバルスコープでappを宣言（初期値はNone）
 app = None
-db = None
 
 def create_app(test_config=None, skip_create_all=False):
-    global app, db # グローバル変数を参照
+    global app # グローバル変数を参照
     # Flaskアプリケーションの作成
     app = Flask(__name__)
     
@@ -55,12 +56,13 @@ def create_app(test_config=None, skip_create_all=False):
         if os.environ.get("VERCEL_ENV"):
             db_url = os.environ.get("DATABASE_URL")
             if db_url:
+                # Use DATABASE_URL if provided in Vercel
                 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
             else:
-                # In Vercel, if DATABASE_URL is not set, set URI to None to prevent build-time connection
-                # The app should ideally fail at runtime if a DB operation is attempted without a URL
-                app.config["SQLALCHEMY_DATABASE_URI"] = None
-                print("DEBUG: VERCEL_ENV is set but DATABASE_URL is not. Setting SQLALCHEMY_DATABASE_URI to None.")
+                # In Vercel, if DATABASE_URL is not set, use in-memory SQLite for build phase
+                # This prevents connection attempts to MySQL during build
+                app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+                print("DEBUG: VERCEL_ENV is set but DATABASE_URL is not. Using in-memory SQLite for build.")
         else:
             # Not in Vercel environment (local development or other)
             db_url = os.environ.get("DATABASE_URL")
@@ -80,12 +82,7 @@ def create_app(test_config=None, skip_create_all=False):
     print(f"DEBUG: SQLALCHEMY_DATABASE_URI in app.config: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
 
     # このアプリインスタンス用のdbインスタンスを、設定が完了した後に作成
-    db_instance = None
-    if app.config.get("SQLALCHEMY_DATABASE_URI") is not None:
-        db_instance = SQLAlchemy(model_class=Base)
-        db_instance.init_app(app)
-    else:
-        print("DEBUG: SQLALCHEMY_DATABASE_URI is None, skipping SQLAlchemy initialization.")
+    db.init_app(app)
 
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_recycle": 300,
@@ -134,12 +131,14 @@ def create_app(test_config=None, skip_create_all=False):
     with app.app_context():
         # ここでモデルをインポートしないとテーブルが作成されません
         import models  # noqa: F401
+        if not skip_create_all:
+            pass # 何もしない
     
-    return app, db_instance # アプリとdbインスタンスを返す
+    return app # アプリを返す
 
 # アプリケーションが直接実行された場合にのみインスタンスを作成
 if __name__ == '__main__':
-    app, db = create_app()
+    app = create_app(skip_create_all=False) # ここでskip_create_allをFalseに設定
 
 # 循環インポートを防ぐため、アプリが作成された後にルートをインポート
 # import routes # noqa: F401

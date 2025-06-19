@@ -1,3 +1,3 @@
-from app import create_app
+from app import create_app, db
 
-app, db = create_app(skip_create_all=True) 
+app = create_app(skip_create_all=True) 

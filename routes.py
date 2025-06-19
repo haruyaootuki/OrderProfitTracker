@@ -9,7 +9,7 @@ from functools import wraps
 import functools
 from urllib.parse import urlparse
 
-from app import limiter
+from app import limiter, db
 from models import User, Order
 from forms import LoginForm, OrderForm, UserForm
 
@@ -29,7 +29,7 @@ def index():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        user = current_app.extensions['sqlalchemy'].session.query(User).filter_by(username=form.username.data).first()
+        user = db.session.query(User).filter_by(username=form.username.data).first()
         
         if user and user.check_password(form.password.data) and user.is_active:
             login_user(user, remember=True)
@@ -71,7 +71,7 @@ def api_get_orders():
         search = request.args.get('search', '').strip()
         
         # Build query
-        query = current_app.extensions['sqlalchemy'].session.query(Order)
+        query = db.session.query(Order)
         
         if search:
             search_filter = or_(
@@ -121,14 +121,14 @@ def api_create_order():
                 description=form.description.data
             )
             
-            current_app.extensions['sqlalchemy'].session.add(order)
-            current_app.extensions['sqlalchemy'].session.commit()
+            db.session.add(order)
+            db.session.commit()
             
             logging.info(f"Order created for project: {order.project_name}")
             return jsonify({'message': '受注が登録されました', 'order': order.to_dict()}), 201
         
         except Exception as e:
-            current_app.extensions['sqlalchemy'].session.rollback()
+            db.session.rollback()
             logging.error(f"Error creating order: {e}")
             return jsonify({'error': '受注登録中にエラーが発生しました'}), 500
     
@@ -138,7 +138,6 @@ def api_create_order():
 @login_required
 @limiter.limit("30 per minute")
 def api_update_order(order_id):
-    db = current_app.extensions['sqlalchemy']
     order = db.session.query(Order).get_or_404(order_id)
     
     form = OrderForm()
@@ -173,7 +172,6 @@ def api_update_order(order_id):
 @login_required
 @limiter.limit("20 per minute")
 def api_delete_order(order_id):
-    db = current_app.extensions['sqlalchemy']
     order = db.session.query(Order).get_or_404(order_id)
     
     try:
@@ -199,7 +197,7 @@ def profit_analysis():
 def api_get_projects():
     try:
         # プロジェクト名の一覧を取得（重複を除く）
-        projects = current_app.extensions['sqlalchemy'].session.query(distinct(Order.project_name))\
+        projects = db.session.query(distinct(Order.project_name))\
             .order_by(Order.project_name)\
             .all()
         
@@ -224,7 +222,7 @@ def api_get_profit_data():
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
 
         # クエリの構築
-        query = current_app.extensions['sqlalchemy'].session.query(Order).filter(Order.order_date.between(start_date, end_date))
+        query = db.session.query(Order).filter(Order.order_date.between(start_date, end_date))
         
         # プロジェクト名が'all'でない場合は、特定のプロジェクトでフィルタリング
         if project_name != 'all':
@@ -259,7 +257,6 @@ def delete_user():
     if not user_id:
         return jsonify({'error': 'ユーザーIDが指定されていません'}), 400
 
-    db = current_app.extensions['sqlalchemy']
     user_to_delete = db.session.query(User).get(user_id)
 
     if user_to_delete:
@@ -299,7 +296,7 @@ def admin_required(f):
 @login_required
 @admin_required
 def admin_users():
-    users = current_app.extensions['sqlalchemy'].session.query(User).all()
+    users = db.session.query(User).all()
     return render_template('admin/users.html', users=users)
 
 @main_bp.route('/admin/users/create', methods=['GET', 'POST'])
@@ -308,7 +305,6 @@ def admin_users():
 def admin_create_user():
     form = LoginForm() # Reuse LoginForm for user creation
     if form.validate_on_submit():
-        db = current_app.extensions['sqlalchemy']
         username = form.username.data
         password = form.password.data
         email = request.form.get('email')
@@ -334,7 +330,6 @@ def admin_create_user():
 @login_required
 @admin_required
 def admin_delete_user(user_id):
-    db = current_app.extensions['sqlalchemy']
     user_to_delete = db.session.query(User).get_or_404(user_id)
     try:
         db.session.delete(user_to_delete)
@@ -350,7 +345,6 @@ def admin_delete_user(user_id):
 @login_required
 @admin_required
 def admin_toggle_admin(user_id):
-    db = current_app.extensions['sqlalchemy']
     user = db.session.query(User).get_or_404(user_id)
     try:
         user.is_admin = not user.is_admin
