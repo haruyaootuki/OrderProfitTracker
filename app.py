@@ -59,7 +59,7 @@ def create_app(test_config=None):
         
         if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
             # TiDB Cloud用の接続文字列を構築（ポート番号を追加）
-            MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}?ssl_mode=VERIFY_IDENTITY"
+            MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
             app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
             
             # デバッグ情報を出力（パスワードは除く）
@@ -84,7 +84,7 @@ def create_app(test_config=None):
         "connect_args": {
             "connect_timeout": 10,
             "ssl": {
-                "ssl_mode": "VERIFY_IDENTITY"
+                "verify_identity": True
             }
         }
     }
