@@ -13,7 +13,9 @@ from dotenv import load_dotenv
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-load_dotenv()
+# Vercel環境でない場合のみ.envを読み込む
+if not os.getenv('VERCEL_ENV'):
+    load_dotenv()
 
 class Base(DeclarativeBase):
     pass
