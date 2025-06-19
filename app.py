@@ -8,14 +8,14 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
-from dotenv import load_dotenv
+# from dotenv import load_dotenv # この行を削除またはコメントアウト
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Vercel環境でない場合のみ.envを読み込む
-if not os.getenv('VERCEL_ENV'):
-    load_dotenv()
+# load_dotenv()に関する以下の行を削除またはコメントアウト
+# if not os.getenv('VERCEL_ENV'):
+#     load_dotenv()
 
 class Base(DeclarativeBase):
     pass
@@ -107,5 +107,8 @@ def create_app(test_config=None):
 # import routes
 
 # Vercelデプロイ用にアプリケーションインスタンスを作成
-if os.getenv('VERCEL_ENV'):
-    app = create_app()
+# if os.getenv('VERCEL_ENV'): # この行を削除またはコメントアウト
+#     app = create_app() # この行を削除またはコメントアウト
+
+# アプリケーションインスタンスを無条件で作成
+app = create_app()
