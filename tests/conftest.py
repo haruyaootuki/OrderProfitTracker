@@ -61,13 +61,13 @@ def authenticated_user(app, client, db_session):
     db_session.commit()
 
     # ログインページからCSRFトークンを取得
-    response = client.get(url_for('main.login'))
+    response = client.get('/login')
     soup = BeautifulSoup(response.data, 'html.parser')
     csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
 
     # CSRFトークンを含めてログイン
     client.post(
-        url_for('main.login'),
+        '/login',
         data={
             'username': user.username,
             'password': 'password',
@@ -77,3 +77,29 @@ def authenticated_user(app, client, db_session):
     )
     # セッションにアタッチされた状態のユーザーを返す
     return db_session.query(User).filter_by(username='testuser').first()
+
+@pytest.fixture
+def admin_user(app, client, db_session):
+    # 管理者ユーザー作成
+    user = User(username='admin', email='admin@example.com', is_admin=True, is_active=True)
+    user.set_password('password')
+    db_session.add(user)
+    db_session.commit()
+
+    # ログインページからCSRFトークンを取得
+    response = client.get('/login')
+    soup = BeautifulSoup(response.data, 'html.parser')
+    csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
+
+    # CSRFトークンを含めてログイン
+    client.post(
+        '/login',
+        data={
+            'username': user.username,
+            'password': 'password',
+            'csrf_token': csrf_token
+        },
+        follow_redirects=True
+    )
+    # セッションにアタッチされた状態のユーザーを返す
+    return db_session.query(User).filter_by(username='admin').first()

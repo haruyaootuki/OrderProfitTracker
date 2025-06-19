@@ -17,13 +17,13 @@ def admin_user(app, client, db_session):
     db_session.commit()
 
     # ログインページからCSRFトークンを取得
-    response = client.get(url_for('main.login'))
+    response = client.get('/login')
     soup = BeautifulSoup(response.data, 'html.parser')
     csrf_token = soup.find('input', {'name': 'csrf_token'}).get('value')
 
     # CSRFトークンを使ってログイン
     client.post(
-        url_for('main.login'),
+        '/login',
         data={
             'username': user.username,
             'password': 'password',
@@ -40,7 +40,7 @@ class TestAdminCreateUser:
 
     def _get_csrf_token(self, client):
         """Helper to get CSRF token from the create user page."""
-        response = client.get(url_for('main.admin_create_user'))
+        response = client.get('/admin/users/create')
         soup = BeautifulSoup(response.data, 'html.parser')
         csrf_token = soup.find('input', {'name': 'csrf_token'})
         if csrf_token:
@@ -51,7 +51,7 @@ class TestAdminCreateUser:
         csrf_token = self._get_csrf_token(client)
         assert csrf_token is not None
         response = client.post(
-            url_for('main.admin_create_user'),
+            '/admin/users/create',
             data={
                 'username': 'newuser',
                 'password': 'password123',
@@ -64,7 +64,7 @@ class TestAdminCreateUser:
         assert response.status_code == 302
 
     def test_admin_access_create_user_page(self, client, admin_user):
-        response = client.get(url_for('main.admin_create_user'))
+        response = client.get('/admin/users/create')
         assert response.status_code == 200
         assert '<title>新規ユーザー作成 - 受注管理システム</title>'.encode('utf-8') in response.data
 
@@ -72,7 +72,7 @@ class TestAdminCreateUser:
         csrf_token = self._get_csrf_token(client)
         assert csrf_token is not None
         response = client.post(
-            url_for('main.admin_create_user'),
+            '/admin/users/create',
             data={
                 'username': 'adminuser',
                 'password': 'adminpass',
@@ -96,7 +96,7 @@ class TestAdminCreateUser:
         csrf_token = self._get_csrf_token(client)
         assert csrf_token is not None
         response = client.post(
-            url_for('main.admin_create_user'),
+            '/admin/users/create',
             data={
                 'username': 'existinguser',
                 'password': 'password123',
@@ -117,7 +117,7 @@ class TestAdminCreateUser:
         csrf_token = self._get_csrf_token(client)
         assert csrf_token is not None
         response = client.post(
-            url_for('main.admin_create_user'),
+            '/admin/users/create',
             data={
                 'username': 'uniqueuser',
                 'password': 'password123',
@@ -130,6 +130,6 @@ class TestAdminCreateUser:
         assert 'メールアドレスは既に存在します。'.encode('utf-8') in response.data
 
     def test_non_admin_access_create_user_page(self, client, authenticated_user):
-        response = client.get(url_for('main.admin_create_user'))
+        response = client.get('/admin/users/create')
         assert response.status_code == 302
-        assert response.headers['Location'] == url_for('main.index')
+        assert response.headers['Location'] == '/'
