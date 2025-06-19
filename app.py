@@ -8,14 +8,14 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
-# from dotenv import load_dotenv # この行を削除またはコメントアウト
+from dotenv import load_dotenv # この行を再度有効にする
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-# load_dotenv()に関する以下の行を削除またはコメントアウト
-# if not os.getenv('VERCEL_ENV'):
-#     load_dotenv()
+# load_dotenv()に関する以下の行を再度有効にする
+if not os.getenv('VERCEL_ENV'):
+    load_dotenv()
 
 class Base(DeclarativeBase):
     pass
@@ -48,10 +48,6 @@ def create_app(test_config=None):
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     else:
         app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-    
-    # デバッグ用: DATABASE_URLの値をログに出力
-    print(f"DEBUG: DATABASE_URL from os.environ: {os.environ.get('DATABASE_URL')}")
-    print(f"DEBUG: SQLALCHEMY_DATABASE_URI in app.config: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
 
     # Create db instance for THIS app instance AFTER config is set
     db_instance = SQLAlchemy(model_class=Base)
