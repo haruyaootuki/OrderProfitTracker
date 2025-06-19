@@ -1,37 +1,46 @@
 import pytest
-from app import create_app
+from app import create_app, limiter # create_appとlimiterをインポート
 from flask_login import UserMixin
-from flask_sqlalchemy import SQLAlchemy # This import is no longer needed here, but kept for clarity if Base is imported here
+# from flask_sqlalchemy import SQLAlchemy # この行はもう不要です
 from models import User # Userモデルをインポート
 from bs4 import BeautifulSoup # BeautifulSoupをインポート
 
+# Flask-Limiterのデコレータをテスト中に無効にするためのモックデコレータは不要になりました
+# def no_op_limit_decorator(*args, **kwargs):
+#     def decorator(f):
+#         return f
+#     return decorator
+
+# @pytest.fixture(autouse=True)
+# def disable_rate_limits(monkeypatch):
+#     monkeypatch.setattr(limiter, 'limit', no_op_limit_decorator)
+
 @pytest.fixture
 def app():
-    # Create the Flask app instance with TESTING mode enabled
-    flask_app = create_app(test_config={
+    # Flask appインスタンスをcreate_appで作成し、TESTINGモードを有効にする
+    # レート制限はテストで有効にしておく
+    flask_app, test_db_instance = create_app(test_config={
         "TESTING": True,
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"
+        # "RATELIMIT_ENABLED": False は削除します
     })
     
     # 例外がエラーハンドラーに伝播するように設定
     flask_app.config["PROPAGATE_EXCEPTIONS"] = False
 
-    # Get the db instance that was initialized with the app
-    test_db_instance = flask_app.extensions['sqlalchemy']
-
     with flask_app.app_context():
-        # Create all tables on the in-memory database using the returned db_instance
+        # インメモリデータベースにすべてのテーブルを作成
         test_db_instance.create_all()
 
-        yield flask_app # Yield the app for tests to run
+        yield flask_app # アプリをテストのためにyieldする
 
-        # Clean up: drop all tables from the in-memory test database
+        # クリーンアップ: インメモリテストデータベースからすべてのテーブルを削除
         test_db_instance.session.remove()
         test_db_instance.drop_all()
 
 @pytest.fixture
 def db_session(app):
-    test_db = app.extensions['sqlalchemy'] # This will be our test_db_instance
+    test_db = app.extensions['sqlalchemy'] # appフィクスチャからdbインスタンスを取得
     with app.app_context():
         yield test_db.session
         test_db.session.rollback()
