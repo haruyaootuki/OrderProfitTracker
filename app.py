@@ -55,11 +55,10 @@ def create_app(test_config=None):
         MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
         MYSQL_HOST = os.environ.get("MYSQL_HOST")
         MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
-        MYSQL_PORT = os.environ.get("MYSQL_PORT", "4000")  # TiDB Cloudのデフォルトポート
-        
+
         if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
             # TiDB Cloud用の接続文字列を構築（ポート番号を追加）
-            MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
+            MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DATABASE}"
             app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
             
             # デバッグ情報を出力（パスワードは除く）
