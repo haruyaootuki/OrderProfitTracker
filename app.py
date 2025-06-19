@@ -61,7 +61,7 @@ def create_app(test_config=None):
                 "connect_timeout": 10,
                 "ssl": {
                     "verify_identity": True
-                }
+                } if os.environ.get('VERCEL') else {}
             }
         }
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -73,21 +73,20 @@ def create_app(test_config=None):
         MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
         MYSQL_PORT = os.environ.get("MYSQL_PORT", "4000")  # デフォルトポートを4000に設定
 
-        print("\nDatabase Configuration Debug:")
-        print(f"MYSQL_HOST: {MYSQL_HOST}")
-        print(f"MYSQL_PORT: {MYSQL_PORT}")
-        print(f"MYSQL_DATABASE: {MYSQL_DATABASE}")
-        print(f"MYSQL_USER: {MYSQL_USER}")
-        print(f"Environment is Vercel: {os.environ.get('VERCEL', False)}")
+        print("\nVercel Environment:", "Yes" if os.environ.get('VERCEL') else "No")
+        print("\nDatabase Configuration:")
+        print(f"Host: {MYSQL_HOST}")
+        print(f"Port: {MYSQL_PORT}")
+        print(f"Database: {MYSQL_DATABASE}")
+        print(f"User: {MYSQL_USER}")
 
         if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
             # TiDB Cloud用の接続文字列を構築
             MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
             app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
             
-            # デバッグ情報を出力（パスワードは除く）
-            print(f"\nFinal Database URI: mysql+pymysql://{MYSQL_USER}:****@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}")
-            print(f"SSL verification enabled: {app.config['SQLALCHEMY_ENGINE_OPTIONS']['connect_args']['ssl']}")
+            print("\nDatabase connection configured successfully")
+            print(f"Connection string (without password): mysql+pymysql://{MYSQL_USER}:****@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}")
         else:
             missing_vars = [var for var, value in {
                 'MYSQL_USER': MYSQL_USER,
@@ -96,7 +95,7 @@ def create_app(test_config=None):
                 'MYSQL_DATABASE': MYSQL_DATABASE
             }.items() if not value]
             error_msg = f"Missing required MySQL environment variables: {', '.join(missing_vars)}"
-            print(f"\nError: {error_msg}")
+            print(f"\nConfiguration Error: {error_msg}")
             raise ValueError(error_msg)
 
     # このアプリインスタンス用のdbインスタンスを、設定が完了した後に作成
