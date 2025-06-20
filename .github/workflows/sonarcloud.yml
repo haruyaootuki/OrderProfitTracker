@@ -33,5 +33,6 @@ jobs:
             -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
             -Dsonar.sources=.
             -Dsonar.python.version=3.13
+            -Dsonar.autoconfig.disabled=true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
