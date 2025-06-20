@@ -14,8 +14,8 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.DEBUG)
 
 # 環境変数を読み込む（開発環境用）
-if not os.environ.get('VERCEL'):
-    load_dotenv()
+# if not os.environ.get('VERCEL'):
+load_dotenv()
 
 # Vercel環境の確認
 IS_VERCEL = bool(os.environ.get('VERCEL'))
