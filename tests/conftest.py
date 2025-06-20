@@ -1,5 +1,5 @@
 import pytest
-from app import create_app, limiter, db # dbをインポート
+from app import app as flask_app, limiter, db
 from flask_login import UserMixin
 # from flask_sqlalchemy import SQLAlchemy # この行はもう不要です
 from models import User # Userモデルをインポート
@@ -17,15 +17,12 @@ from bs4 import BeautifulSoup # BeautifulSoupをインポート
 
 @pytest.fixture
 def app():
-    # Flask appインスタンスをcreate_appで作成し、TESTINGモードを有効にする
-    # レート制限はテストで有効にしておく
-    flask_app = create_app(test_config={
+    # テスト用の設定を適用
+    flask_app.config.update({
         "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+        "PROPAGATE_EXCEPTIONS": False
     })
-    
-    # 例外がエラーハンドラーに伝播するように設定
-    flask_app.config["PROPAGATE_EXCEPTIONS"] = False
 
     with flask_app.app_context():
         # インメモリデータベースにすべてのテーブルを作成
