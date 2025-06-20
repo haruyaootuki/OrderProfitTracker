@@ -10,6 +10,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      TESTING: true
+      SESSION_SECRET: github-actions-test-secret
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -34,4 +38,5 @@ jobs:
     #   run: pip list
 
     - name: Run tests
-      run: python -m pytest 
+      run: |
+        python -m pytest -v

@@ -96,26 +96,26 @@ csrf = CSRFProtect()
 app = None
 
 def create_app(test_config=None):
-    global app # グローバル変数を参照
-    # Flaskアプリケーションの作成
+    global app
     app = Flask(__name__)
     
     # 設定
-    app.secret_key = os.environ.get("SESSION_SECRET")
+    app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")  # デフォルト値を追加
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     # エラーハンドラーを登録
     register_error_handlers(app)
 
     # テスト設定が提供されている場合は適用
-    if test_config is None:
-        app.config["TESTING"] = False # デフォルトはFalse
-    else:
+    if test_config is not None:
         app.config.update(test_config)
+    else:
+        app.config["TESTING"] = False
 
     # データベース設定
-    if app.config["TESTING"]:
+    if app.config.get("TESTING", False):
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     else:
         # SQLAlchemy エンジンオプションを先に設定
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
@@ -143,6 +143,7 @@ def create_app(test_config=None):
             MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
             app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
         else:
+            # テスト環境でない場合のみエラーを発生させる
             missing_vars = [var for var, value in {
                 'MYSQL_USER': MYSQL_USER,
                 'MYSQL_PASSWORD': MYSQL_PASSWORD,
@@ -150,7 +151,11 @@ def create_app(test_config=None):
                 'MYSQL_DATABASE': MYSQL_DATABASE
             }.items() if not value]
             error_msg = f"Missing required MySQL environment variables: {', '.join(missing_vars)}"
-            raise ValueError(error_msg)
+            if not app.config.get("TESTING", False):
+                raise ValueError(error_msg)
+            else:
+                app.logger.warning(f"Using SQLite for testing. {error_msg}")
+                app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
 
     # このアプリインスタンス用のdbインスタンスを、設定が完了した後に作成
     db.init_app(app)
