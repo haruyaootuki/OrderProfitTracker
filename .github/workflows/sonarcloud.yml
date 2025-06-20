@@ -16,13 +16,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '18'
+          python-version: '3.13'
 
       - name: Install dependencies
-        run: npm install
+        run: pip install -r requirements.txt
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
