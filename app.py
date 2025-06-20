@@ -31,37 +31,46 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# MySQL database configuration
-MYSQL_USER = os.environ.get("MYSQL_USER")
-MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
-MYSQL_HOST = os.environ.get("MYSQL_HOST")
-MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
-MYSQL_PORT = os.environ.get("MYSQL_PORT", "4000")
-
-if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
-    # Configure MySQL database URI
-    MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
-    app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
-else:
-    # 開発環境用のフォールバックURI
+# データベース設定
+if os.environ.get("TESTING"):
+    # テスト環境用の設定
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    print("Warning: Using in-memory SQLite database as fallback")
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {}
+else:
+    # 本番環境（Vercel）または開発環境用の設定
+    MYSQL_USER = os.environ.get("MYSQL_USER")
+    MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
+    MYSQL_HOST = os.environ.get("MYSQL_HOST")
+    MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
+    MYSQL_PORT = os.environ.get("MYSQL_PORT", "4000")
 
-# SQLAlchemy engine options
-engine_options = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-    "pool_size": 5,
-    "max_overflow": 2,
-    "connect_args": {
-        "connect_timeout": 10,
-        "ssl": {
-            "verify_identity": True
-        } if os.environ.get('VERCEL') else {}
-    }
-}
+    if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
+        # MySQL設定
+        MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
+        app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "pool_recycle": 300,
+            "pool_pre_ping": True,
+            "pool_size": 5,
+            "max_overflow": 2,
+            "connect_args": {
+                "connect_timeout": 10,
+                "ssl": {
+                    "verify_identity": True
+                } if os.environ.get('VERCEL') else {}
+            }
+        }
+    else:
+        # 環境変数が不足している場合のエラー処理
+        missing_vars = [var for var, value in {
+            'MYSQL_USER': MYSQL_USER,
+            'MYSQL_PASSWORD': MYSQL_PASSWORD,
+            'MYSQL_HOST': MYSQL_HOST,
+            'MYSQL_DATABASE': MYSQL_DATABASE
+        }.items() if not value]
+        error_msg = f"Missing required MySQL environment variables: {', '.join(missing_vars)}"
+        raise ValueError(error_msg)
 
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_options
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # セキュリティ設定
@@ -98,17 +107,6 @@ def load_user(user_id):
     return db.session.query(User).get(int(user_id))
 
 with app.app_context():
-    # 環境変数が設定されていない場合のエラー処理
-    if not all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]) and os.environ.get('VERCEL'):
-        missing_vars = [var for var, value in {
-            'MYSQL_USER': MYSQL_USER,
-            'MYSQL_PASSWORD': MYSQL_PASSWORD,
-            'MYSQL_HOST': MYSQL_HOST,
-            'MYSQL_DATABASE': MYSQL_DATABASE
-        }.items() if not value]
-        error_msg = f"Missing required MySQL environment variables: {', '.join(missing_vars)}"
-        raise ValueError(error_msg)
-
     import models  # noqa: F401
     db.create_all()
 
