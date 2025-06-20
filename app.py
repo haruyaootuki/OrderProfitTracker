@@ -31,6 +31,22 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+# MySQL database configuration
+MYSQL_USER = os.environ.get("MYSQL_USER")
+MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
+MYSQL_HOST = os.environ.get("MYSQL_HOST")
+MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
+MYSQL_PORT = os.environ.get("MYSQL_PORT", "4000")
+
+if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
+    # Configure MySQL database URI
+    MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
+    app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
+else:
+    # 開発環境用のフォールバックURI
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    print("Warning: Using in-memory SQLite database as fallback")
+
 # SQLAlchemy engine options
 engine_options = {
     "pool_recycle": 300,
@@ -82,18 +98,8 @@ def load_user(user_id):
     return db.session.query(User).get(int(user_id))
 
 with app.app_context():
-    # MySQL database configuration
-    MYSQL_USER = os.environ.get("MYSQL_USER")
-    MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
-    MYSQL_HOST = os.environ.get("MYSQL_HOST")
-    MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
-    MYSQL_PORT = os.environ.get("MYSQL_PORT", "4000")
-
-    if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
-        # Configure MySQL database URI
-        MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
-        app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
-    else:
+    # 環境変数が設定されていない場合のエラー処理
+    if not all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]) and os.environ.get('VERCEL'):
         missing_vars = [var for var, value in {
             'MYSQL_USER': MYSQL_USER,
             'MYSQL_PASSWORD': MYSQL_PASSWORD,
