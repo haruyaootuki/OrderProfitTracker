@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="display-4">401</h1>
+            <h2 class="h4 mb-4">認証が必要です</h2>
+            <p class="lead mb-5">このページにアクセスするには、ログインが必要です。</p>
+            <a href="{{ url_for('main.login') }}" class="btn btn-primary">ログイン</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

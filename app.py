@@ -1,6 +1,7 @@
 import os
 import logging
-from flask import Flask, current_app, request, jsonify, flash, redirect, url_for
+import traceback
+from flask import Flask, current_app, request, jsonify, flash, redirect, url_for, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
@@ -8,6 +9,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.exceptions import HTTPException
 from dotenv import load_dotenv
 
 # Configure logging
@@ -16,6 +18,65 @@ logging.basicConfig(level=logging.DEBUG)
 # 環境変数を読み込む（開発環境用）
 if not os.environ.get('VERCEL'):
     load_dotenv()
+
+def register_error_handlers(app):
+    @app.errorhandler(HTTPException)
+    def handle_http_error(error):
+        """HTTPエラーのハンドリング"""
+        # エラーをログに記録
+        app.logger.error(f"HTTP error occurred: {error.code} - {error.name}")
+        
+        # APIリクエストの場合はJSONレスポンスを返す
+        if request.path.startswith('/api/'):
+            response = {
+                'error': {
+                    'code': error.code,
+                    'name': error.name,
+                    'description': error.description
+                }
+            }
+            return jsonify(response), error.code
+        
+        # HTMLリクエストの場合はエラーページを返す
+        try:
+            # エラーコードに対応するテンプレートがある場合はそれを使用
+            return render_template(f'{error.code}.html'), error.code
+        except:
+            # テンプレートがない場合は汎用エラーページを使用
+            return render_template('error.html', error=error), error.code
+
+    @app.errorhandler(Exception)
+    def handle_exception(error):
+        """予期しないエラーのハンドリング"""
+        # エラーをログに記録
+        app.logger.error(f"Unhandled exception: {str(error)}", exc_info=True)
+        
+        # APIリクエストの場合
+        if request.path.startswith('/api/'):
+            if app.debug:
+                # デバッグモードの場合は詳細情報を含める
+                response = {
+                    'error': {
+                        'code': 500,
+                        'name': 'Internal Server Error',
+                        'description': str(error),
+                        'type': type(error).__name__,
+                        'stack_trace': traceback.format_exc()
+                    }
+                }
+            else:
+                # 本番環境では詳細情報は含めない
+                response = {
+                    'error': {
+                        'code': 500,
+                        'name': 'Internal Server Error',
+                        'description': '予期しないエラーが発生しました'
+                    }
+                }
+            return jsonify(response), 500
+        
+        # HTMLリクエストの場合
+        return render_template('500.html'), 500
 
 class Base(DeclarativeBase):
     pass
@@ -42,6 +103,9 @@ def create_app(test_config=None):
     # 設定
     app.secret_key = os.environ.get("SESSION_SECRET")
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+    # エラーハンドラーを登録
+    register_error_handlers(app)
 
     # テスト設定が提供されている場合は適用
     if test_config is None:
