@@ -13,7 +13,32 @@ from dotenv import load_dotenv
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-load_dotenv()
+# 環境変数を読み込む（開発環境用）
+if not os.environ.get('VERCEL'):
+    load_dotenv()
+
+# Vercel環境の確認
+IS_VERCEL = bool(os.environ.get('VERCEL'))
+print(f"Running on Vercel: {IS_VERCEL}")
+
+# 現在の環境変数をすべて表示（パスワードは除く）
+print("\nAll environment variables:")
+env_vars = dict(os.environ)
+for key in sorted(env_vars.keys()):
+    if 'PASSWORD' not in key.upper() and 'SECRET' not in key.upper():
+        print(f"{key}: {env_vars[key]}")
+
+# データベース接続情報を確認
+print("\nDatabase connection variables:")
+db_vars = {
+    'MYSQL_HOST': os.environ.get('MYSQL_HOST'),
+    'MYSQL_PORT': os.environ.get('MYSQL_PORT', '4000'),
+    'MYSQL_DATABASE': os.environ.get('MYSQL_DATABASE'),
+    'MYSQL_USER': os.environ.get('MYSQL_USER')
+}
+print("Database variables present:")
+for key, value in db_vars.items():
+    print(f"{key}: {'[SET]' if value else '[NOT SET]'}")
 
 class Base(DeclarativeBase):
     pass
@@ -51,6 +76,11 @@ def create_app(test_config=None):
     if app.config["TESTING"]:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     else:
+        print("\n=== Environment Information ===")
+        print(f"Running on Vercel: {bool(os.environ.get('VERCEL'))}")
+        print(f"Environment: {os.environ.get('VERCEL_ENV')}")
+        print(f"Region: {os.environ.get('VERCEL_REGION')}")
+        
         # SQLAlchemy エンジンオプションを先に設定
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
             "pool_recycle": 300,
@@ -71,22 +101,22 @@ def create_app(test_config=None):
         MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
         MYSQL_HOST = os.environ.get("MYSQL_HOST")
         MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
-        MYSQL_PORT = os.environ.get("MYSQL_PORT", "4000")  # デフォルトポートを4000に設定
+        MYSQL_PORT = os.environ.get("MYSQL_PORT", "4000")
 
-        print("\nVercel Environment:", "Yes" if os.environ.get('VERCEL') else "No")
-        print("\nDatabase Configuration:")
-        print(f"Host: {MYSQL_HOST}")
+        print("\n=== Database Configuration ===")
+        print(f"Host: {MYSQL_HOST or '[NOT SET]'}")
         print(f"Port: {MYSQL_PORT}")
-        print(f"Database: {MYSQL_DATABASE}")
-        print(f"User: {MYSQL_USER}")
+        print(f"Database: {MYSQL_DATABASE or '[NOT SET]'}")
+        print(f"User: {MYSQL_USER or '[NOT SET]'}")
+        print(f"SSL Verification: {bool(os.environ.get('VERCEL'))}")
 
         if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
-            # TiDB Cloud用の接続文字列を構築
             MYSQL_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
             app.config["SQLALCHEMY_DATABASE_URI"] = MYSQL_URI
             
-            print("\nDatabase connection configured successfully")
+            print("\n=== Database Connection ===")
             print(f"Connection string (without password): mysql+pymysql://{MYSQL_USER}:****@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}")
+            print("SSL Configuration:", app.config["SQLALCHEMY_ENGINE_OPTIONS"]["connect_args"]["ssl"])
         else:
             missing_vars = [var for var, value in {
                 'MYSQL_USER': MYSQL_USER,
@@ -95,7 +125,8 @@ def create_app(test_config=None):
                 'MYSQL_DATABASE': MYSQL_DATABASE
             }.items() if not value]
             error_msg = f"Missing required MySQL environment variables: {', '.join(missing_vars)}"
-            print(f"\nConfiguration Error: {error_msg}")
+            print(f"\n=== Configuration Error ===")
+            print(error_msg)
             raise ValueError(error_msg)
 
     # このアプリインスタンス用のdbインスタンスを、設定が完了した後に作成
@@ -149,3 +180,5 @@ def create_app(test_config=None):
 if __name__ == '__main__':
     app = create_app()
     app.run(host="0.0.0.0", port=5000, debug=True)
+else:
+    app = create_app()  # Vercelなどの本番環境用

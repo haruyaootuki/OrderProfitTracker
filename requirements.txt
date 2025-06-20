@@ -40,8 +40,6 @@ flask-wtf==1.2.2
     # via repl-nix-workspace (pyproject.toml)
 greenlet==3.2.3
     # via sqlalchemy
-gunicorn==23.0.0
-    # via repl-nix-workspace (pyproject.toml)
 idna==3.10
     # via
     #   email-validator
@@ -75,7 +73,6 @@ ordered-set==4.1.0
     # via flask-limiter
 packaging==25.0
     # via
-    #   gunicorn
     #   limits
     #   pytest
 pluggy==1.6.0
