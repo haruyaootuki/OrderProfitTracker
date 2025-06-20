@@ -1,3 +1,4 @@
+import os
 import pytest
 from app import create_app, limiter, db # dbをインポート
 from flask_login import UserMixin
@@ -15,13 +16,18 @@ from bs4 import BeautifulSoup # BeautifulSoupをインポート
 # def disable_rate_limits(monkeypatch):
 #     monkeypatch.setattr(limiter, 'limit', no_op_limit_decorator)
 
+# テスト環境であることを明示
+os.environ['TESTING'] = 'true'
+
 @pytest.fixture
 def app():
     # Flask appインスタンスをcreate_appで作成し、TESTINGモードを有効にする
-    # レート制限はテストで有効にしておく
-    flask_app = create_app(test_config={
+    flask_app = create_app({
         "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+        "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+        "WTF_CSRF_ENABLED": False,  # テスト時はCSRFチェックを無効化
+        "SESSION_COOKIE_SECURE": False  # テスト時はセキュアクッキーを無効化
     })
     
     # 例外がエラーハンドラーに伝播するように設定
@@ -30,9 +36,7 @@ def app():
     with flask_app.app_context():
         # インメモリデータベースにすべてのテーブルを作成
         db.create_all()
-
-        yield flask_app # アプリをテストのためにyieldする
-
+        yield flask_app
         # クリーンアップ: インメモリテストデータベースからすべてのテーブルを削除
         db.session.remove()
         db.drop_all()

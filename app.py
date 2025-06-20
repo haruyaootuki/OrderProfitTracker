@@ -208,5 +208,14 @@ def create_app(test_config=None):
 if __name__ == '__main__':
     app = create_app()
     app.run(host="0.0.0.0", port=5000, debug=True)
+elif os.environ.get('TESTING') == 'true':
+    # テスト環境用の設定
+    app = create_app({
+        "TESTING": True,
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+        "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+        "WTF_CSRF_ENABLED": False  # テスト時はCSRFチェックを無効化
+    })
 else:
-    app = create_app()  # Vercelなどの本番環境用
+    # Vercelなどの本番環境用
+    app = create_app()
