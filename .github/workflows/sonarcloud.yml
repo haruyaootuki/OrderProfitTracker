@@ -21,7 +21,14 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov coverage
+
+      - name: Run tests with coverage
+        run: |
+          python -m pytest --cov=. --cov-report=xml --cov-report=term-missing tests/
+          coverage xml -i
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
@@ -33,5 +40,8 @@ jobs:
             -Dsonar.sources=.
             -Dsonar.python.version=3.13
             -Dsonar.autoconfig.disabled=true
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.coverage.exclusions=tests/**/*,**/__pycache__/**/*
+            -Dsonar.test.inclusions=tests/**/*
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
