@@ -179,6 +179,10 @@ def create_app(test_config=None):
     
     @login_manager.unauthorized_handler
     def unauthorized():
+        # ヘルスチェックエンドポイントは除外
+        if request.path == '/health':
+            return jsonify({'status': 'healthy'}), 200
+            
         # APIエンドポイントの場合、401 Unauthorizedを返す
         if request.blueprint == 'main' and request.path.startswith('/api/'):
             return jsonify({'error': '認証が必要です'}), 401
@@ -197,7 +201,9 @@ def create_app(test_config=None):
 
     @csrf.exempt
     @app.route('/health')
+    @login_manager.exempt
     def health_check():
+        app.logger.debug(f"Health check accessed - Path: {request.path}, Method: {request.method}, Headers: {request.headers}")
         return jsonify({
             'status': 'healthy',
             'message': 'System is running normally'
